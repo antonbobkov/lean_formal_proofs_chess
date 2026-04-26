@@ -4,6 +4,12 @@
 -- This file defines the types and logic for a tiny chess variant.
 -- It is meant to be read top-to-bottom: each definition builds
 -- on the ones above it.
+--
+-- The chess predicates (Between, KingAttacks, IsCheck, ...) are
+-- written as `Prop` rather than `Bool`.  They stay executable via
+-- `Decidable` instances, so `#guard` and `decide` still work, but
+-- proofs about them manipulate `∧`/`∨`/`∃`/`¬` directly instead of
+-- shuffling `= true` / `Bool.false_eq_true` everywhere.
 
 
 -- ------------------------------------------------------------
@@ -98,22 +104,55 @@ def allPositions (n : Nat) : List (Pos n) :=
 
 
 -- ------------------------------------------------------------
+-- HELPER: every position is in allPositions
+-- ------------------------------------------------------------
+-- Used both by proofs and (crucially) by the Decidable instances
+-- below, which reduce `∀ p : Pos n, …` and `∃ p : Pos n, …` to the
+-- list-bounded versions over `allPositions n`.
+theorem mem_allPositions {n : Nat} (p : Pos n) : p ∈ allPositions n := by
+  obtain ⟨r, c⟩ := p
+  unfold allPositions
+  rw [List.mem_flatMap]
+  refine ⟨r, List.mem_finRange r, ?_⟩
+  rw [List.mem_map]
+  exact ⟨c, List.mem_finRange c, rfl⟩
+
+
+-- ------------------------------------------------------------
+-- DECIDABILITY OVER POSITIONS
+-- ------------------------------------------------------------
+-- `Pos n` is finite, so any decidable predicate over it gives a
+-- decidable forall/exists.  We bridge through `allPositions n` —
+-- core Lean already knows how to decide `∀ x ∈ l, …` and `∃ x ∈ l, …`.
+instance instDecidableForallPos {n : Nat} (P : Pos n → Prop) [DecidablePred P] :
+    Decidable (∀ p : Pos n, P p) :=
+  decidable_of_iff (∀ p ∈ allPositions n, P p)
+    ⟨fun h p => h p (mem_allPositions p), fun h p _ => h p⟩
+
+instance instDecidableExistsPos {n : Nat} (P : Pos n → Prop) [DecidablePred P] :
+    Decidable (∃ p : Pos n, P p) :=
+  decidable_of_iff (∃ p ∈ allPositions n, P p)
+    ⟨fun ⟨p, _, hp⟩ => ⟨p, hp⟩, fun ⟨p, hp⟩ => ⟨p, mem_allPositions p, hp⟩⟩
+
+
+-- ------------------------------------------------------------
 -- HELPER: is x strictly between a and b on one axis?
 -- ------------------------------------------------------------
 -- We need this to check whether a piece blocks a rook's line of sight.
 -- The arguments `a`, `b`, `x` are all `Fin n` values (coordinates).
 --
--- `.val` extracts the underlying `Nat` (natural number) from a `Fin n`.
--- We then use plain `Nat` comparisons — no subtraction needed, which is
--- important because `Nat` subtraction saturates at 0 (e.g. `2 - 5 = 0`)
--- and would give wrong answers here.
+-- `.val` extracts the underlying `Nat` from a `Fin n`.  We use plain
+-- `Nat` comparisons — no subtraction, which is important because
+-- `Nat` subtraction saturates at 0 (e.g. `2 - 5 = 0`) and would give
+-- wrong answers here.
 --
--- `min` / `max` let us handle both orderings of `a` and `b` uniformly.
--- For example, `between 3 1 2` and `between 1 3 2` both return `true`.
-def between {n : Nat} (a b x : Fin n) : Bool :=
-  let lo := min a.val b.val
-  let hi := max a.val b.val
-  lo < x.val && x.val < hi
+-- `min` / `max` let us handle both orderings of `a` and `b` uniformly:
+-- `Between 3 1 2` and `Between 1 3 2` are both true.
+def Between {n : Nat} (a b x : Fin n) : Prop :=
+  min a.val b.val < x.val ∧ x.val < max a.val b.val
+
+instance {n : Nat} (a b x : Fin n) : Decidable (Between a b x) := by
+  unfold Between; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -122,47 +161,32 @@ def between {n : Nat} (a b x : Fin n) : Bool :=
 -- A rook attacks along its entire rank (row) or file (column),
 -- stopping at the first piece it hits.
 --
--- Parameters:
---   b   — the board (tells us what occupies each square)
---   src — the rook's current position
---   tgt — the square we're asking about (e.g. where the king stands)
---
--- Returns `true` if the rook at `src` can see (attack) `tgt`.
-def rookAttacks {n : Nat} (b : Board n) (src tgt : Pos n) : Bool :=
-  -- A rook does not attack its own square.
-  if src == tgt then false
-  else
-    -- Destructure the pairs into named row/column coordinates.
-    -- `let (sr, sc) := src` is pattern-matching on a pair.
-    let (sr, sc) := src   -- source row, source column
-    let (tr, tc) := tgt   -- target row, target column
-    if sr == tr then
-      -- Same row: the rook slides horizontally.
-      -- We check whether any square on that row sits strictly between
-      -- the two column indices and is occupied.
-      -- `!` is boolean NOT; `.any` returns true if *any* element
-      -- satisfies the predicate.
-      -- `.isSome` on `Option T` is true when the value is `some _`.
-      !(allPositions n).any fun (r, c) =>
-        r == sr && between sc tc c && (b (r, c)).isSome
-    else if sc == tc then
-      -- Same column: the rook slides vertically.
-      !(allPositions n).any fun (r, c) =>
-        c == sc && between sr tr r && (b (r, c)).isSome
-    else
-      -- Different row AND different column — rooks can't attack diagonally.
-      false
+-- `RookAttacks b src tgt` holds iff `src ≠ tgt` and either
+--   * src and tgt share a row, with no occupied square strictly
+--     between their columns on that row; or
+--   * src and tgt share a column, with no occupied square strictly
+--     between their rows on that column.
+def RookAttacks {n : Nat} (b : Board n) (src tgt : Pos n) : Prop :=
+  src ≠ tgt ∧
+  ((src.1 = tgt.1 ∧ ∀ p : Pos n, p.1 = src.1 → Between src.2 tgt.2 p.2 → b p = none)
+   ∨ (src.2 = tgt.2 ∧ ∀ p : Pos n, p.2 = src.2 → Between src.1 tgt.1 p.1 → b p = none))
+
+instance {n : Nat} (b : Board n) (src tgt : Pos n) : Decidable (RookAttacks b src tgt) := by
+  unfold RookAttacks; infer_instance
 
 
 -- ------------------------------------------------------------
 -- WITHIN-ONE HELPER
 -- ------------------------------------------------------------
--- True when |a - b| ≤ 1. Written symmetrically using `max`/`min` so that
--- `withinOne a b = withinOne b a` follows directly from `Nat.max_comm` and
--- `Nat.min_comm`. Equivalent to `a == b || a + 1 == b || b + 1 == a`.
-def withinOne (a b : Nat) : Bool :=
-  let d := max a b - min a b
-  d == 0 || d == 1
+-- True when |a - b| ≤ 1.  Written symmetrically using `max`/`min` so
+-- that `WithinOne a b ↔ WithinOne b a` follows directly from
+-- `Nat.max_comm`/`Nat.min_comm`.  Equivalent to
+-- `a = b ∨ a + 1 = b ∨ b + 1 = a`.
+def WithinOne (a b : Nat) : Prop :=
+  max a b - min a b ≤ 1
+
+instance (a b : Nat) : Decidable (WithinOne a b) := by
+  unfold WithinOne; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -170,17 +194,11 @@ def withinOne (a b : Nat) : Bool :=
 -- ------------------------------------------------------------
 -- A king attacks all squares immediately adjacent to it — up to 8
 -- squares, one step in any direction (including diagonals).
---
--- We check "within one step" on each axis independently using `withinOne`,
--- then combine. Defining the per-axis check symmetrically (via max/min)
--- makes `kingAttacks` provably symmetric.
-def kingAttacks {n : Nat} (src tgt : Pos n) : Bool :=
-  -- A king does not attack its own square.
-  if src == tgt then false
-  else
-    let (sr, sc) := src
-    let (tr, tc) := tgt
-    withinOne sr.val tr.val && withinOne sc.val tc.val
+def KingAttacks {n : Nat} (src tgt : Pos n) : Prop :=
+  src ≠ tgt ∧ WithinOne src.1.val tgt.1.val ∧ WithinOne src.2.val tgt.2.val
+
+instance {n : Nat} (src tgt : Pos n) : Decidable (KingAttacks src tgt) := by
+  unfold KingAttacks; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -188,13 +206,6 @@ def kingAttacks {n : Nat} (src tgt : Pos n) : Bool :=
 -- ------------------------------------------------------------
 -- Scans all squares and returns the position of the first King of
 -- color `c` it finds, or `none` if there is no such king on the board.
---
--- `List.find?` returns `Option (Pos n)` — the `?` in the name is a Lean
--- convention meaning "this might fail / return nothing".
---
--- `some ⟨c, .King⟩` constructs an `Option Piece` value to compare against.
--- `⟨c, .King⟩` is anonymous constructor syntax: Lean infers that we want
--- a `Piece` because that's what `b p` returns inside `Option`.
 def findKing {n : Nat} (b : Board n) (c : Color) : Option (Pos n) :=
   (allPositions n).find? fun p => b p == some ⟨c, .King⟩
 
@@ -202,38 +213,18 @@ def findKing {n : Nat} (b : Board n) (c : Color) : Option (Pos n) :=
 -- ------------------------------------------------------------
 -- IS THE KING IN CHECK?
 -- ------------------------------------------------------------
--- The main function. Returns `true` if the king of color `c` is
--- currently attacked by any opponent piece.
---
--- Steps:
---   1. Find where the king is. If there is no king, return false.
---   2. Scan every square for an opponent piece.
---   3. For each opponent piece, ask whether it attacks the king's square.
-def isCheck {n : Nat} (b : Board n) (c : Color) : Bool :=
-  -- `match` is Lean's pattern-matching expression, like a switch
-  -- statement but exhaustive — we must handle every case.
-  match findKing b c with
-  | none =>
-    -- No king on the board (shouldn't happen in a valid game, but the
-    -- function is still total — it handles every possible board).
-    false
-  | some kingPos =>
-    -- `kingPos` is now the unwrapped `Pos n` value.
-    -- `List.any` short-circuits: it returns `true` as soon as one
-    -- element satisfies the predicate.
-    (allPositions n).any fun p =>
-      match b p with
-      | none =>
-        -- Empty square — skip it.
-        false
-      | some piece =>
-        -- There is a piece here. Only opponent pieces can give check.
-        if piece.color == c.opponent then
-          match piece.kind with
-          | .Rook => rookAttacks b p kingPos
-          | .King => kingAttacks p kingPos
-        else
-          false
+-- `IsCheck b c` says: there is a king of color `c` somewhere, and
+-- some opponent piece attacks its square.  We split on the opponent
+-- piece's kind explicitly to keep the statement first-order in the
+-- decidable atoms.
+def IsCheck {n : Nat} (b : Board n) (c : Color) : Prop :=
+  ∃ kingPos, b kingPos = some ⟨c, .King⟩ ∧
+    ∃ p,
+      (b p = some ⟨c.opponent, .Rook⟩ ∧ RookAttacks b p kingPos) ∨
+      (b p = some ⟨c.opponent, .King⟩ ∧ KingAttacks p kingPos)
+
+instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheck b c) := by
+  unfold IsCheck; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -249,25 +240,22 @@ def applyMove {n : Nat} (b : Board n) (src dst : Pos n) : Board n :=
 -- MOVE TARGET GENERATION
 -- ------------------------------------------------------------
 -- For each piece type, compute the squares it can move to from `src`
--- on board `b` for color `c`.
--- These are purely geometric — we do NOT yet filter out moves that
--- leave the king in check; `isCheckmate` does that via `isCheck`.
-
--- King: any adjacent square not occupied by a friendly piece.
+-- on board `b` for color `c`.  These are purely geometric: we do NOT
+-- yet filter out moves that leave the king in check; `IsCheckmate`
+-- does that via `IsCheck`.
+--
+-- `List.filter` takes a `Bool` predicate, so we turn the `Prop`-valued
+-- attack predicates into `Bool` with `decide`.
 def kingMoveTargets {n : Nat} (b : Board n) (src : Pos n) (c : Color) : List (Pos n) :=
   (allPositions n).filter fun dst =>
-    kingAttacks src dst &&
+    decide (KingAttacks src dst) &&
     match b dst with
     | some p => p.color != c
     | none   => true
 
--- Rook: any square on the same rank or file with a clear path, not
--- occupied by a friendly piece.
--- `rookAttacks b src dst` already encodes "same rank/file AND clear path",
--- so we only add the friendly-piece guard on the destination square.
 def rookMoveTargets {n : Nat} (b : Board n) (src : Pos n) (c : Color) : List (Pos n) :=
   (allPositions n).filter fun dst =>
-    rookAttacks b src dst &&
+    decide (RookAttacks b src dst) &&
     match b dst with
     | some p => p.color != c
     | none   => true
@@ -276,43 +264,35 @@ def rookMoveTargets {n : Nat} (b : Board n) (src : Pos n) (c : Color) : List (Po
 -- ------------------------------------------------------------
 -- IS THE KING IN CHECKMATE?
 -- ------------------------------------------------------------
--- Returns `true` if the king of color `c` is in check AND every
--- possible move by every friendly piece leaves the king still in check.
---
--- Steps:
---   1. Confirm the king is in check (necessary condition).
---   2. For each friendly piece, generate its candidate target squares.
---   3. For each target, apply the move with `applyMove` and test with
---      `isCheck`. If any move resolves the check, return false.
-def isCheckmate {n : Nat} (b : Board n) (c : Color) : Bool :=
-  isCheck b c &&
-  !(allPositions n).any fun src =>
-    match b src with
-    | none => false
-    | some piece =>
-      if piece.color != c then false
-      else
-        let targets := match piece.kind with
-          | .King => kingMoveTargets b src c
-          | .Rook => rookMoveTargets b src c
-        targets.any fun dst =>
-          !isCheck (applyMove b src dst) c
+-- `IsCheckmate b c` holds when `c`'s king is in check and every
+-- candidate move of every friendly piece leaves the king still in
+-- check.  We unfold the quantification over the moving piece into
+-- two implications (King / Rook) so each conjunct stays decidable.
+def IsCheckmate {n : Nat} (b : Board n) (c : Color) : Prop :=
+  IsCheck b c ∧
+  ∀ src,
+    (b src = some ⟨c, .King⟩ →
+      ∀ dst ∈ kingMoveTargets b src c, IsCheck (applyMove b src dst) c) ∧
+    (b src = some ⟨c, .Rook⟩ →
+      ∀ dst ∈ rookMoveTargets b src c, IsCheck (applyMove b src dst) c)
+
+instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheckmate b c) := by
+  unfold IsCheckmate; infer_instance
 
 
 -- ------------------------------------------------------------
 -- IS THE SETUP LEGAL?
 -- ------------------------------------------------------------
--- A legal setup requires:
---   1. Exactly one White King on the board.
---   2. Exactly one Black King on the board.
---   3. The two kings are not adjacent (not touching).
---
--- `List.filter` keeps only positions satisfying the predicate.
--- The `match` on singleton lists enforces exactly-one-of-each.
--- `!kingAttacks wp bp` then verifies the kings do not touch.
-def isLegalSetup {n : Nat} (b : Board n) : Bool :=
-  let whites := (allPositions n).filter fun p => b p == some ⟨.White, .King⟩
-  let blacks := (allPositions n).filter fun p => b p == some ⟨.Black, .King⟩
-  match whites, blacks with
-  | [wp], [bp] => !kingAttacks wp bp
-  | _, _ => false
+-- A legal setup has exactly one White King, exactly one Black King,
+-- and the two kings are not adjacent.  Stating it directly via
+-- uniqueness of the king positions makes downstream proofs trivial:
+-- destructuring `IsLegalSetup b` gives the two positions and the
+-- non-attack fact for free.
+def IsLegalSetup {n : Nat} (b : Board n) : Prop :=
+  ∃ wp bp,
+    (∀ p, b p = some ⟨.White, .King⟩ ↔ p = wp) ∧
+    (∀ p, b p = some ⟨.Black, .King⟩ ↔ p = bp) ∧
+    ¬ KingAttacks wp bp
+
+instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
+  unfold IsLegalSetup; infer_instance

@@ -48,7 +48,7 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- row 2 [ .  .  .   .]
 -- row 3 [ .  .  .   .]
 -- The rook and king are on the same row with nothing between them → CHECK.
-#guard isCheck (boardFrom [(sq 0 0, WK), (sq 0 3, BR)]) .White
+#guard IsCheck (boardFrom [(sq 0 0, WK), (sq 0 3, BR)]) .White
 
 -- Same idea but vertically (same column):
 --   col  0  1  2  3
@@ -57,28 +57,28 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- row 2 [ .  .  .   .]
 -- row 3 [BR  .  .   .]
 -- Rook slides up the column, no blockers → CHECK.
-#guard isCheck (boardFrom [(sq 0 0, WK), (sq 3 0, BR)]) .White
+#guard IsCheck (boardFrom [(sq 0 0, WK), (sq 3 0, BR)]) .White
 
 -- A piece between the rook and king blocks the attack:
 --   col  0  1  2  3
 -- row 0 [WK WR  .  BR]
 -- The white rook at (0,1) sits between king (0,0) and black rook (0,3).
 -- The black rook's line of sight is blocked → NOT in check.
-#guard !isCheck (boardFrom [(sq 0 0, WK), (sq 0 1, WR), (sq 0 3, BR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, WK), (sq 0 1, WR), (sq 0 3, BR)]) .White
 
 -- Rook on a completely different row AND column — can't attack diagonally:
 --   col  0  1  2  3
 -- row 0 [WK  .  .   .]
 -- row 1 [ .  .  .  BR]
-#guard !isCheck (boardFrom [(sq 0 0, WK), (sq 1 3, BR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, WK), (sq 1 3, BR)]) .White
 
 -- Rook immediately adjacent (no squares between them) → still CHECK.
--- `between 1 2 x` is false for all x (no integer strictly between 1 and 2),
+-- `Between 1 2 x` is false for all x (no integer strictly between 1 and 2),
 -- so nothing can block, and the attack succeeds.
-#guard isCheck (boardFrom [(sq 1 1, WK), (sq 1 2, BR)]) .White
+#guard IsCheck (boardFrom [(sq 1 1, WK), (sq 1 2, BR)]) .White
 
 -- A friendly (same-color) rook does NOT give check:
-#guard !isCheck (boardFrom [(sq 0 0, WK), (sq 0 3, WR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, WK), (sq 0 3, WR)]) .White
 
 
 -- ============================================================
@@ -88,19 +88,19 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- Adjacent black king → white king in check (kings threaten their neighbors):
 --   col  0  1
 -- row 0 [WK BK]
-#guard isCheck (boardFrom [(sq 0 0, WK), (sq 0 1, BK)]) .White
+#guard IsCheck (boardFrom [(sq 0 0, WK), (sq 0 1, BK)]) .White
 
 -- Diagonal adjacency also counts:
 --   col  0  1
 -- row 0 [WK  .]
 -- row 1 [ .  BK]
-#guard isCheck (boardFrom [(sq 0 0, WK), (sq 1 1, BK)]) .White
+#guard IsCheck (boardFrom [(sq 0 0, WK), (sq 1 1, BK)]) .White
 
 -- Kings two squares apart — out of range:
-#guard !isCheck (boardFrom [(sq 0 0, WK), (sq 0 2, BK)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, WK), (sq 0 2, BK)]) .White
 
 -- Kings far apart:
-#guard !isCheck (boardFrom [(sq 0 0, WK), (sq 2 3, BK)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, WK), (sq 2 3, BK)]) .White
 
 
 -- ============================================================
@@ -108,21 +108,21 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- ============================================================
 
 -- No king of the asked color on the board → false (defensive total behavior):
-#guard !isCheck (boardFrom [(sq 0 3, BR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 3, BR)]) .White
 
 -- Kings in corners, black rook gives check to black king (friendly fire is
 -- impossible — we're asking about White's king here, which doesn't exist):
-#guard !isCheck (boardFrom [(sq 3 3, BK), (sq 0 3, BR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 3 3, BK), (sq 0 3, BR)]) .White
 
 -- Black king in check by a white rook:
 --   col  0  1  2  3
 -- row 0 [BK  .  .  WK]
 -- row 3 [WR  .  .   .]
 -- White rook at (3,0) attacks black king at (0,0) along column 0 → CHECK.
-#guard isCheck (boardFrom [(sq 0 0, BK), (sq 0 3, WK), (sq 3 0, WR)]) .Black
+#guard IsCheck (boardFrom [(sq 0 0, BK), (sq 0 3, WK), (sq 3 0, WR)]) .Black
 
 -- The same board is NOT check for White (white king is safe):
-#guard !isCheck (boardFrom [(sq 0 0, BK), (sq 0 3, WK), (sq 3 0, WR)]) .White
+#guard ¬ IsCheck (boardFrom [(sq 0 0, BK), (sq 0 3, WK), (sq 3 0, WR)]) .White
 
 
 -- ============================================================
@@ -130,25 +130,25 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- ============================================================
 
 -- One king each, well separated → legal.
-#guard isLegalSetup (boardFrom [(sq 0 0, WK), (sq 3 3, BK)])
+#guard IsLegalSetup (boardFrom [(sq 0 0, WK), (sq 3 3, BK)])
 
 -- Kings adjacent horizontally → illegal (touching).
-#guard !isLegalSetup (boardFrom [(sq 0 0, WK), (sq 0 1, BK)])
+#guard ¬ IsLegalSetup (boardFrom [(sq 0 0, WK), (sq 0 1, BK)])
 
 -- Kings adjacent diagonally → also illegal.
-#guard !isLegalSetup (boardFrom [(sq 0 0, WK), (sq 1 1, BK)])
+#guard ¬ IsLegalSetup (boardFrom [(sq 0 0, WK), (sq 1 1, BK)])
 
 -- Missing black king → illegal.
-#guard !isLegalSetup (boardFrom [(sq 0 0, WK)])
+#guard ¬ IsLegalSetup (boardFrom [(sq 0 0, WK)])
 
 -- Missing white king → illegal.
-#guard !isLegalSetup (boardFrom [(sq 3 3, BK)])
+#guard ¬ IsLegalSetup (boardFrom [(sq 3 3, BK)])
 
 -- Two white kings → illegal.
-#guard !isLegalSetup (boardFrom [(sq 0 0, WK), (sq 2 0, WK), (sq 3 3, BK)])
+#guard ¬ IsLegalSetup (boardFrom [(sq 0 0, WK), (sq 2 0, WK), (sq 3 3, BK)])
 
 -- Empty board → illegal.
-#guard !isLegalSetup (boardFrom ([] : List (Pos 4 × Piece)))
+#guard ¬ IsLegalSetup (boardFrom ([] : List (Pos 4 × Piece)))
 
 
 -- ============================================================
@@ -165,23 +165,23 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 -- row 1 [WR  .  .   .]
 -- row 2 [WR  .  .   .]
 -- row 3 [ .  .  WK  .]
-#guard isCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 0, WR), (sq 2 0, WR), (sq 3 2, WK)]) .Black
+#guard IsCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 0, WR), (sq 2 0, WR), (sq 3 2, WK)]) .Black
 
 -- White is not in checkmate on the same board (white king is never in check):
-#guard !isCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 0, WR), (sq 2 0, WR), (sq 3 2, WK)]) .White
+#guard ¬ IsCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 0, WR), (sq 2 0, WR), (sq 3 2, WK)]) .White
 
 -- In check but can escape: BK moves to (1,0) which nothing attacks.
-#guard !isCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 3 3, WK)]) .Black
+#guard ¬ IsCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 3 3, WK)]) .Black
 
 -- Not in check → cannot be checkmate.
-#guard !isCheckmate (boardFrom [(sq 0 0, BK), (sq 3 3, WK)]) .Black
+#guard ¬ IsCheckmate (boardFrom [(sq 0 0, BK), (sq 3 3, WK)]) .Black
 
 -- In check but BK can capture the attacker: after BK takes WR at (1,0),
 -- the white king at (3,3) is too far to threaten (1,0).
-#guard !isCheckmate (boardFrom [(sq 0 0, BK), (sq 1 0, WR), (sq 3 3, WK)]) .Black
+#guard ¬ IsCheckmate (boardFrom [(sq 0 0, BK), (sq 1 0, WR), (sq 3 3, WK)]) .Black
 
 -- In check, king cannot escape, but a friendly rook can interpose:
 -- BK at (0,0) is checked by WR at (0,3); WR at (1,3) covers all of
 -- row 1 so BK has nowhere to run, but BR at (2,1) can slide to (0,1)
 -- and block the check along row 0.
-#guard !isCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 3, WR), (sq 3 0, WK), (sq 2 1, BR)]) .Black
+#guard ¬ IsCheckmate (boardFrom [(sq 0 0, BK), (sq 0 3, WR), (sq 1 3, WR), (sq 3 0, WK), (sq 2 1, BR)]) .Black
