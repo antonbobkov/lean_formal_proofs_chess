@@ -1,7 +1,0 @@
--- This module serves as the root of the `HelloWorld` library.
--- Import modules here that should be built as part of the library.
-import HelloWorld.Basic
-import HelloWorld.Chess
-import HelloWorld.ChessTests
-import HelloWorld.FinLemma
-import HelloWorld.ChessProofs

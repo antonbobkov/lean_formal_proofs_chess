@@ -1,4 +1,4 @@
-import HelloWorld.Chess
+import ChessRules
 
 -- ============================================================
 -- Tests for the mini-chess module

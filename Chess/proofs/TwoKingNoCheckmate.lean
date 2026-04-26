@@ -1,49 +1,4 @@
-import HelloWorld.Chess
-import HelloWorld.FinLemma
-
--- ============================================================
--- PROOF: at most n non-attacking rooks on an n x n board
--- ============================================================
-def nonAttackingRooks {n : Nat} (ps : List (Fin n × Fin n)) : Prop :=
-  ∀ p q, p ∈ ps → q ∈ ps → p ≠ q → p.1 ≠ q.1
-
-
-theorem row_nodup {n : Nat} {ps : List (Fin n × Fin n)}
-    (hna : nonAttackingRooks ps) (hnd : ps.Nodup) :
-    (ps.map (·.1)).Nodup := by
-  induction ps with
-  | nil => simp
-  | cons p rest ih =>
-    rw [List.nodup_cons] at hnd
-    obtain ⟨hnotmem, hrest_nd⟩ := hnd
-    simp only [List.map_cons, List.nodup_cons]
-    constructor
-    · intro hmem
-      rw [List.mem_map] at hmem
-      obtain ⟨q, hq_in, hq_row⟩ := hmem
-      have hpq : p ≠ q := fun heq => hnotmem (heq ▸ hq_in)
-      exact (hna p q (List.mem_cons.mpr (.inl rfl))
-                     (List.mem_cons.mpr (.inr hq_in)) hpq) hq_row.symm
-    · apply ih
-      · intro a b ha hb hab
-        exact hna a b (List.mem_cons.mpr (.inr ha))
-                      (List.mem_cons.mpr (.inr hb)) hab
-      · exact hrest_nd
-
-
-theorem rooks_le {n : Nat} (ps : List (Fin n × Fin n))
-    (hnd : ps.Nodup) (hna : nonAttackingRooks ps) :
-    ps.length <= n := by
-  have h1 : (ps.map (·.1)).Nodup := row_nodup hna hnd
-  have h2 : (ps.map (·.1)).length <= n := nodup_fin_length_le _ h1
-  rwa [List.length_map] at h2
-
-
-theorem rooks_le_four (ps : List (Pos 4))
-    (hnd : ps.Nodup) (hna : nonAttackingRooks ps) :
-    ps.length <= 4 :=
-  rooks_le ps hnd hna
-
+import ChessRules
 
 -- ============================================================
 -- PROOF: Checkmate is impossible with only two kings
@@ -62,17 +17,11 @@ def only_kings_on_board {n : Nat} (b : Board n) : Prop :=
   ∀ p piece, b p = some piece → piece.kind = .King
 
 
--- ============================================================
--- HELPER: WithinOne is symmetric
--- ============================================================
 theorem WithinOne_comm (a b : Nat) : WithinOne a b ↔ WithinOne b a := by
   unfold WithinOne
   rw [Nat.max_comm, Nat.min_comm]
 
 
--- ============================================================
--- HELPER: KingAttacks is symmetric
--- ============================================================
 theorem KingAttacks_comm {n : Nat} (a b : Pos n) :
     KingAttacks a b ↔ KingAttacks b a := by
   unfold KingAttacks
@@ -80,9 +29,6 @@ theorem KingAttacks_comm {n : Nat} (a b : Pos n) :
   exact ⟨fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩, fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩⟩
 
 
--- ============================================================
--- LEMMA: Not in check implies not in checkmate
--- ============================================================
 theorem not_check_implies_not_checkmate {n : Nat} (b : Board n) (c : Color) :
     ¬IsCheck b c → ¬IsCheckmate b c :=
   fun h ⟨hc, _⟩ => h hc
