@@ -2,6 +2,11 @@ name = "hello_world"
 version = "0.1.0"
 defaultTargets = ["hello_world"]
 
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+version = "git#v4.30.0-rc2"
+
 [[lean_lib]]
 name = "HelloWorld"
 
