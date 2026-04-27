@@ -1,3 +1,5 @@
+import Mathlib.Logic.ExistsUnique
+
 -- ============================================================
 -- Mini Chess: n×n board, Kings and Rooks only
 -- ============================================================
@@ -284,15 +286,13 @@ instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheckmate b c) := by
 -- IS THE SETUP LEGAL?
 -- ------------------------------------------------------------
 -- A legal setup has exactly one White King, exactly one Black King,
--- and the two kings are not adjacent.  Stating it directly via
--- uniqueness of the king positions makes downstream proofs trivial:
--- destructuring `IsLegalSetup b` gives the two positions and the
--- non-attack fact for free.
+-- and the two kings are not adjacent.  Using `∃!` states uniqueness
+-- directly; the non-attack condition is a universally-quantified
+-- implication (effectively a single pair, since each king is unique).
 def IsLegalSetup {n : Nat} (b : Board n) : Prop :=
-  ∃ wp bp,
-    (∀ p, b p = some ⟨.White, .King⟩ ↔ p = wp) ∧
-    (∀ p, b p = some ⟨.Black, .King⟩ ↔ p = bp) ∧
-    ¬ KingAttacks wp bp
+  (∃! wp : Pos n, b wp = some ⟨.White, .King⟩) ∧
+  (∃! bp : Pos n, b bp = some ⟨.Black, .King⟩) ∧
+  ∀ wp bp : Pos n, b wp = some ⟨.White, .King⟩ → b bp = some ⟨.Black, .King⟩ → ¬ KingAttacks wp bp
 
 instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
-  unfold IsLegalSetup; infer_instance
+  unfold IsLegalSetup ExistsUnique; infer_instance

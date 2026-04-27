@@ -40,27 +40,20 @@ theorem not_check_implies_not_checkmate {n : Nat} (b : Board n) (c : Color) :
 theorem checkmate_impossible_two_kings {n : Nat} (b : Board n)
     (hlegal : IsLegalSetup b) (hokings : only_kings_on_board b) :
     ∀ c, ¬IsCheckmate b c := by
+  -- ∃! unfolds to ⟨witness, membership, uniqueness function⟩
+  obtain ⟨⟨pos_w, hwhite, huniq_w⟩, ⟨pos_b, hblack, huniq_b⟩, hno_attack⟩ := hlegal
   intro c
-  obtain ⟨pos_w, pos_b, hwhite_uniq, hblack_uniq, hno_attack⟩ := hlegal
-  -- Pick the defending king pos_c and attacker king pos_o per color.
-  -- KingAttacks is symmetric, so the no-attack fact transfers either way.
-  obtain ⟨pos_c, pos_o, hc_uniq, ho_uniq, hno_attack_oc⟩ :
-      ∃ pos_c pos_o,
-        (∀ p, b p = some ⟨c, .King⟩ ↔ p = pos_c) ∧
-        (∀ p, b p = some ⟨c.opponent, .King⟩ ↔ p = pos_o) ∧
-        ¬ KingAttacks pos_o pos_c := by
-    cases c
-    · exact ⟨pos_w, pos_b, hwhite_uniq, hblack_uniq,
-             fun h => hno_attack ((KingAttacks_comm _ _).mp h)⟩
-    · exact ⟨pos_b, pos_w, hblack_uniq, hwhite_uniq, hno_attack⟩
   apply not_check_implies_not_checkmate
   intro h_check
   obtain ⟨kpos, hk, p, hcase⟩ := h_check
   rcases hcase with ⟨hbp, _⟩ | ⟨hbp, hattack⟩
   · -- Attacker would be a Rook, but only_kings_on_board says otherwise.
     cases hokings p _ hbp
-  · -- Attacker is the opponent king; uniqueness pins p = pos_o, kpos = pos_c.
-    have hkpos : kpos = pos_c := (hc_uniq kpos).mp hk
-    have hp : p = pos_o := (ho_uniq p).mp hbp
-    rw [hkpos, hp] at hattack
-    exact hno_attack_oc hattack
+  · -- Attacker is the opponent king; ∃! pins each position uniquely.
+    cases c
+    · -- White king: kpos = pos_w, opponent p = pos_b; attack reverses via symmetry.
+      rw [huniq_w kpos hk, huniq_b p hbp] at hattack
+      exact hno_attack pos_w pos_b hwhite hblack ((KingAttacks_comm _ _).mp hattack)
+    · -- Black king: kpos = pos_b, opponent p = pos_w; attack direction matches.
+      rw [huniq_b kpos hk, huniq_w p hbp] at hattack
+      exact hno_attack pos_w pos_b hwhite hblack hattack
