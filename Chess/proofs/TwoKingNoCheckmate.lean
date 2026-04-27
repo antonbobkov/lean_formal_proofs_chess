@@ -1,11 +1,13 @@
 import ChessRules
+import BasicProofs
 
 -- ============================================================
 -- PROOF: Checkmate is impossible with only two kings
 -- ============================================================
 -- Strategy:
---   1. From a legal setup, extract unique positions for both kings,
---      together with the fact that the two kings do not attack each other.
+--   1. From a legal setup, extract unique positions for both kings.
+--      `IsLegalSetup.kings_not_adjacent` (from BasicProofs) gives us
+--      that the two kings do not attack each other.
 --   2. With only kings on the board (only_kings_on_board), the only
 --      possible attacker against a king is the opponent king.
 --   3. By KingAttacks symmetry + non-adjacency, no attack is possible.
@@ -15,18 +17,6 @@ import ChessRules
 -- Every occupied square contains a king (of either color).
 def only_kings_on_board {n : Nat} (b : Board n) : Prop :=
   ∀ p piece, b p = some piece → piece.kind = .King
-
-
-theorem WithinOne_comm (a b : Nat) : WithinOne a b ↔ WithinOne b a := by
-  unfold WithinOne
-  rw [Nat.max_comm, Nat.min_comm]
-
-
-theorem KingAttacks_comm {n : Nat} (a b : Pos n) :
-    KingAttacks a b ↔ KingAttacks b a := by
-  unfold KingAttacks
-  rw [WithinOne_comm a.1.val b.1.val, WithinOne_comm a.2.val b.2.val]
-  exact ⟨fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩, fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩⟩
 
 
 theorem not_check_implies_not_checkmate {n : Nat} (b : Board n) (c : Color) :
@@ -40,8 +30,10 @@ theorem not_check_implies_not_checkmate {n : Nat} (b : Board n) (c : Color) :
 theorem checkmate_impossible_two_kings {n : Nat} (b : Board n)
     (hlegal : IsLegalSetup b) (hokings : only_kings_on_board b) :
     ∀ c, ¬IsCheckmate b c := by
+  -- Extract the kings-not-adjacent fact before `obtain` destructures `hlegal`.
+  have hno_attack := IsLegalSetup.kings_not_adjacent hlegal
   -- ∃! unfolds to ⟨witness, membership, uniqueness function⟩
-  obtain ⟨⟨pos_w, hwhite, huniq_w⟩, ⟨pos_b, hblack, huniq_b⟩, hno_attack⟩ := hlegal
+  obtain ⟨⟨pos_w, hwhite, huniq_w⟩, ⟨pos_b, hblack, huniq_b⟩, _⟩ := hlegal
   intro c
   apply not_check_implies_not_checkmate
   intro h_check

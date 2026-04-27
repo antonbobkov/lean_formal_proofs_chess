@@ -80,13 +80,20 @@ structure Piece where
 -- one of the n² squares on an n×n board.
 abbrev Pos (n : Nat) := Fin n × Fin n
 
--- A `Board n` is a *function* from positions to pieces on an n×n board.
--- Lean lets you use functions as data structures. Given any square,
--- the board tells you what's on it: `none` for empty, `some piece`
--- for an occupied square.
--- `Option T` is either `none` or `some v` where `v : T` — Lean's
--- built-in way to represent optional / nullable values.
-abbrev Board (n : Nat) := Pos n → Option Piece
+-- A `Board n` bundles two pieces of state for an n×n position:
+--   * `pieces`: a function from positions to occupants — `none` for empty,
+--     `some piece` for an occupied square. (`Option T` is either `none`
+--     or `some v` — Lean's built-in nullable type.)
+--   * `turn`: whose move it is right now.
+--
+-- The `CoeFun` instance below lets us still write `b p` to look up the
+-- piece at `p`; Lean coerces the structure to its underlying function.
+structure Board (n : Nat) where
+  pieces : Pos n → Option Piece
+  turn   : Color
+
+instance {n : Nat} : CoeFun (Board n) (fun _ => Pos n → Option Piece) where
+  coe b := b.pieces
 
 
 -- ------------------------------------------------------------
@@ -233,9 +240,11 @@ instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheck b c) := by
 -- APPLY A MOVE
 -- ------------------------------------------------------------
 -- Relocates the piece at `src` to `dst`, removing whatever was at `dst`
--- (a capture). Every other square is unchanged.
-def applyMove {n : Nat} (b : Board n) (src dst : Pos n) : Board n :=
-  fun p => if p == dst then b src else if p == src then none else b p
+-- (a capture). Every other square is unchanged. The turn flips to the
+-- opponent — that's the move-counter half of "applying a move".
+def applyMove {n : Nat} (b : Board n) (src dst : Pos n) : Board n where
+  pieces p := if p == dst then b src else if p == src then none else b p
+  turn := b.turn.opponent
 
 
 -- ------------------------------------------------------------
@@ -286,13 +295,16 @@ instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheckmate b c) := by
 -- IS THE SETUP LEGAL?
 -- ------------------------------------------------------------
 -- A legal setup has exactly one White King, exactly one Black King,
--- and the two kings are not adjacent.  Using `∃!` states uniqueness
--- directly; the non-attack condition is a universally-quantified
--- implication (effectively a single pair, since each king is unique).
+-- and the player whose turn it ISN'T is not in check — otherwise the
+-- side that just moved would have left the opponent in a check they
+-- failed to address (or delivered a check then handed the move back).
+-- "Kings not adjacent" is *not* a separate clause: it follows from the
+-- no-check condition (see `IsLegalSetup.kings_not_adjacent` in
+-- `proofs/BasicProofs.lean`).
 def IsLegalSetup {n : Nat} (b : Board n) : Prop :=
   (∃! wp : Pos n, b wp = some ⟨.White, .King⟩) ∧
   (∃! bp : Pos n, b bp = some ⟨.Black, .King⟩) ∧
-  ∀ wp bp : Pos n, b wp = some ⟨.White, .King⟩ → b bp = some ⟨.Black, .King⟩ → ¬ KingAttacks wp bp
+  ¬ IsCheck b b.turn.opponent
 
 instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
   unfold IsLegalSetup ExistsUnique; infer_instance

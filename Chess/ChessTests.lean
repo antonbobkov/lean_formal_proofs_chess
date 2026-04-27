@@ -12,14 +12,17 @@ import ChessRules
 -- BOARD BUILDER
 -- ------------------------------------------------------------
 -- A helper to construct a Board from a list of (square, piece) pairs.
--- Any square not in the list is empty (returns `none`).
+-- Any square not in the list is empty (returns `none`).  The `turn`
+-- parameter defaults to `.White` so the bulk of the existing tests
+-- (which don't care about turn) keep working unchanged.
 --
 -- `List.find?` scans the list for a matching square.
 -- `.map (·.2)` transforms `Option (Pos × Piece)` into `Option Piece`
 -- by extracting the second element of the pair.
 -- The `·` is shorthand for a lambda: `fun x => x.2`.
-def boardFrom (squares : List (Pos 4 × Piece)) : Board 4 :=
-  fun p => (squares.find? fun (q, _) => q == p).map (·.2)
+def boardFrom (squares : List (Pos 4 × Piece)) (turn : Color := .White) : Board 4 where
+  pieces p := (squares.find? fun (q, _) => q == p).map (·.2)
+  turn := turn
 
 
 -- ------------------------------------------------------------
@@ -149,6 +152,16 @@ private def sq (r c : Fin 4) : Pos 4 := (r, c)
 
 -- Empty board → illegal.
 #guard ¬ IsLegalSetup (boardFrom ([] : List (Pos 4 × Piece)))
+
+-- Turn-aware legality.  Position: BK at (0,0), WR at (3,0) checking it,
+-- WK at (3,3).  Black to move → legal (white just delivered check):
+#guard IsLegalSetup
+  (boardFrom [(sq 0 0, BK), (sq 3 0, WR), (sq 3 3, WK)] .Black)
+
+-- Same position, but White to move → illegal: it'd mean white delivered
+-- check and then handed the move back without black responding.
+#guard ¬ IsLegalSetup
+  (boardFrom [(sq 0 0, BK), (sq 3 0, WR), (sq 3 3, WK)] .White)
 
 
 -- ============================================================
