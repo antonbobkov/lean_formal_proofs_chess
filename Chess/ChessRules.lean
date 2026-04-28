@@ -7,7 +7,7 @@ import Mathlib.Logic.ExistsUnique
 -- It is meant to be read top-to-bottom: each definition builds
 -- on the ones above it.
 --
--- The chess predicates (Between, KingAttacks, IsCheck, ...) are
+-- The chess predicates (Between, ValidKingMove, IsCheck, ...) are
 -- written as `Prop` rather than `Bool`.  They stay executable via
 -- `Decidable` instances, so `#guard` and `decide` still work, but
 -- proofs about them manipulate `∧`/`∨`/`∃`/`¬` directly instead of
@@ -170,18 +170,18 @@ instance {n : Nat} (a b x : Fin n) : Decidable (Between a b x) := by
 -- A rook attacks along its entire rank (row) or file (column),
 -- stopping at the first piece it hits.
 --
--- `RookAttacks b src tgt` holds iff `src ≠ tgt` and either
+-- `ValidRookMove b src tgt` holds iff `src ≠ tgt` and either
 --   * src and tgt share a row, with no occupied square strictly
 --     between their columns on that row; or
 --   * src and tgt share a column, with no occupied square strictly
 --     between their rows on that column.
-def RookAttacks {n : Nat} (b : Board n) (src tgt : Pos n) : Prop :=
+def ValidRookMove {n : Nat} (b : Board n) (src tgt : Pos n) : Prop :=
   src ≠ tgt ∧
   ((src.1 = tgt.1 ∧ ∀ p : Pos n, p.1 = src.1 → Between src.2 tgt.2 p.2 → b p = none)
    ∨ (src.2 = tgt.2 ∧ ∀ p : Pos n, p.2 = src.2 → Between src.1 tgt.1 p.1 → b p = none))
 
-instance {n : Nat} (b : Board n) (src tgt : Pos n) : Decidable (RookAttacks b src tgt) := by
-  unfold RookAttacks; infer_instance
+instance {n : Nat} (b : Board n) (src tgt : Pos n) : Decidable (ValidRookMove b src tgt) := by
+  unfold ValidRookMove; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -203,11 +203,11 @@ instance (a b : Nat) : Decidable (WithinOne a b) := by
 -- ------------------------------------------------------------
 -- A king attacks all squares immediately adjacent to it — up to 8
 -- squares, one step in any direction (including diagonals).
-def KingAttacks {n : Nat} (src tgt : Pos n) : Prop :=
+def ValidKingMove {n : Nat} (src tgt : Pos n) : Prop :=
   src ≠ tgt ∧ WithinOne src.1.val tgt.1.val ∧ WithinOne src.2.val tgt.2.val
 
-instance {n : Nat} (src tgt : Pos n) : Decidable (KingAttacks src tgt) := by
-  unfold KingAttacks; infer_instance
+instance {n : Nat} (src tgt : Pos n) : Decidable (ValidKingMove src tgt) := by
+  unfold ValidKingMove; infer_instance
 
 
 -- ------------------------------------------------------------
@@ -229,8 +229,8 @@ def findKing {n : Nat} (b : Board n) (c : Color) : Option (Pos n) :=
 def IsCheck {n : Nat} (b : Board n) (c : Color) : Prop :=
   ∃ kingPos, b kingPos = some ⟨c, .King⟩ ∧
     ∃ p,
-      (b p = some ⟨c.opponent, .Rook⟩ ∧ RookAttacks b p kingPos) ∨
-      (b p = some ⟨c.opponent, .King⟩ ∧ KingAttacks p kingPos)
+      (b p = some ⟨c.opponent, .Rook⟩ ∧ ValidRookMove b p kingPos) ∨
+      (b p = some ⟨c.opponent, .King⟩ ∧ ValidKingMove p kingPos)
 
 instance {n : Nat} (b : Board n) (c : Color) : Decidable (IsCheck b c) := by
   unfold IsCheck; infer_instance
@@ -259,14 +259,14 @@ def applyMove {n : Nat} (b : Board n) (src dst : Pos n) : Board n where
 -- attack predicates into `Bool` with `decide`.
 def kingMoveTargets {n : Nat} (b : Board n) (src : Pos n) (c : Color) : List (Pos n) :=
   (allPositions n).filter fun dst =>
-    decide (KingAttacks src dst) &&
+    decide (ValidKingMove src dst) &&
     match b dst with
     | some p => p.color != c
     | none   => true
 
 def rookMoveTargets {n : Nat} (b : Board n) (src : Pos n) (c : Color) : List (Pos n) :=
   (allPositions n).filter fun dst =>
-    decide (RookAttacks b src dst) &&
+    decide (ValidRookMove b src dst) &&
     match b dst with
     | some p => p.color != c
     | none   => true
@@ -308,3 +308,20 @@ def IsLegalSetup {n : Nat} (b : Board n) : Prop :=
 
 instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
   unfold IsLegalSetup ExistsUnique; infer_instance
+
+
+-- ------------------------------------------------------------
+-- IS A MOVE LEGAL?
+-- ------------------------------------------------------------
+-- `IsLegalMove b src dst` holds when:
+--   * the piece at `src` belongs to the side to move (`b.turn`), and
+--     its movement is geometrically valid (king step or clear rook line); and
+--   * the resulting position satisfies `IsLegalSetup` — in particular,
+--     the moving side's king is not left in check.
+def IsLegalMove {n : Nat} (b : Board n) (src dst : Pos n) : Prop :=
+  ((b src = some ⟨b.turn, .King⟩ ∧ ValidKingMove src dst) ∨
+   (b src = some ⟨b.turn, .Rook⟩ ∧ ValidRookMove b src dst)) ∧
+  IsLegalSetup (applyMove b src dst)
+
+instance {n : Nat} (b : Board n) (src dst : Pos n) : Decidable (IsLegalMove b src dst) := by
+  unfold IsLegalMove; infer_instance

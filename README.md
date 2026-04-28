@@ -44,9 +44,9 @@ These convert quantification over all board squares into finite list checks, mak
 
 ### Attack Rules
 
-**Rook attacks** (`RookAttacks b src tgt`): True when `src ≠ tgt`, they share a row or column, and no piece occupies any square strictly between them. The `Between a b x` helper handles either ordering of `a` and `b`.
+**Rook attacks** (`ValidRookMove b src tgt`): True when `src ≠ tgt`, they share a row or column, and no piece occupies any square strictly between them. The `Between a b x` helper handles either ordering of `a` and `b`.
 
-**King attacks** (`KingAttacks src tgt`): True when `src ≠ tgt` and both coordinates are within one step (`WithinOne`), covering all 8 adjacent squares including diagonals.
+**King attacks** (`ValidKingMove src tgt`): True when `src ≠ tgt` and both coordinates are within one step (`WithinOne`), covering all 8 adjacent squares including diagonals.
 
 ### Check and Checkmate
 
@@ -107,7 +107,7 @@ theorem checkmate_impossible_two_kings {n : Nat} (b : Board n)
 2. Assume for contradiction that a king is in check.
 3. The attacking piece must be a Rook or a King.
    - **Rook:** Contradicts `only_kings_on_board` — no rooks exist.
-   - **King:** The attacking king is unique (from `∃!`), so it must be the opponent's king. But `KingAttacks` is symmetric (`KingAttacks_comm`), contradicting `hno_attack`.
+   - **King:** The attacking king is unique (from `∃!`), so it must be the opponent's king. But `ValidKingMove` is symmetric (`ValidKingMove_comm`), contradicting `hno_attack`.
 4. No check → no checkmate (by `not_check_implies_not_checkmate`).
 
 ## Dependencies

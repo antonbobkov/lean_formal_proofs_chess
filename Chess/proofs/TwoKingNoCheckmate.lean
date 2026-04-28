@@ -10,7 +10,7 @@ import BasicProofs
 --      that the two kings do not attack each other.
 --   2. With only kings on the board (only_kings_on_board), the only
 --      possible attacker against a king is the opponent king.
---   3. By KingAttacks symmetry + non-adjacency, no attack is possible.
+--   3. By ValidKingMove symmetry + non-adjacency, no attack is possible.
 --   4. So the king is not in check, hence not in checkmate.
 
 
@@ -45,7 +45,7 @@ theorem checkmate_impossible_two_kings {n : Nat} (b : Board n)
     cases c
     · -- White king: kpos = pos_w, opponent p = pos_b; attack reverses via symmetry.
       rw [huniq_w kpos hk, huniq_b p hbp] at hattack
-      exact hno_attack pos_w pos_b hwhite hblack ((KingAttacks_comm _ _).mp hattack)
+      exact hno_attack pos_w pos_b hwhite hblack ((ValidKingMove_comm _ _).mp hattack)
     · -- Black king: kpos = pos_b, opponent p = pos_w; attack direction matches.
       rw [huniq_b kpos hk, huniq_w p hbp] at hattack
       exact hno_attack pos_w pos_b hwhite hblack hattack
