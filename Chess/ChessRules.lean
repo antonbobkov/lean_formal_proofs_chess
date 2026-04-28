@@ -1,4 +1,7 @@
 import Mathlib.Logic.ExistsUnique
+import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Fintype.Sigma
+import Mathlib.Tactic.DeriveFintype
 
 -- ============================================================
 -- Mini Chess: n×n board, Kings and Rooks only
@@ -31,7 +34,7 @@ import Mathlib.Logic.ExistsUnique
 inductive Color where
   | White
   | Black
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Fintype
 
 -- `Color.opponent` uses *pattern matching* to define the function.
 -- The dot syntax `.White` is shorthand for `Color.White` — Lean can
@@ -45,7 +48,7 @@ def Color.opponent : Color → Color
 inductive PieceType where
   | King
   | Rook
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Fintype
 
 
 -- ------------------------------------------------------------
@@ -61,7 +64,7 @@ inductive PieceType where
 structure Piece where
   color : Color
   kind  : PieceType
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, Fintype
 
 
 -- ------------------------------------------------------------

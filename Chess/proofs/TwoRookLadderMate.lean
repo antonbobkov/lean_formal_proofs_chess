@@ -44,20 +44,23 @@ inductive LadderPhase
 --   moveRa   (R, 0)      (R+1, 1)     (R+1, 0)
 --   moveK    (R, 0)      (R+1, 1)     (R+2, 0)
 
-def kingPos {n : Nat} (R : Fin n) (h : R.val + 2 < n) : Pos n :=
-  (R, ⟨0, by omega⟩)
+def kingPos {n : Nat} (rank : Fin n)
+    (space_left : rank.val + 2 < n) : Pos n :=
+  (rank, ⟨0, by omega⟩)
 
-def rookBPos {n : Nat} (R : Fin n) (φ : LadderPhase) (h : R.val + 2 < n) : Pos n :=
+def rookBPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (space_left : rank.val + 2 < n) : Pos n :=
   match φ with
-  | .moveRb => (R, ⟨1, by omega⟩)
-  | .moveRa => (⟨R.val + 1, by omega⟩, ⟨1, by omega⟩)
-  | .moveK  => (⟨R.val + 1, by omega⟩, ⟨1, by omega⟩)
+  | .moveRb => (rank, ⟨1, by omega⟩)
+  | .moveRa => (⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩)
+  | .moveK  => (⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩)
 
-def rookAPos {n : Nat} (R : Fin n) (φ : LadderPhase) (h : R.val + 2 < n) : Pos n :=
+def rookAPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (space_left : rank.val + 2 < n) : Pos n :=
   match φ with
-  | .moveRb => (⟨R.val + 1, by omega⟩, ⟨0, by omega⟩)
-  | .moveRa => (⟨R.val + 1, by omega⟩, ⟨0, by omega⟩)
-  | .moveK  => (⟨R.val + 2, by omega⟩, ⟨0, by omega⟩)
+  | .moveRb => (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩)
+  | .moveRa => (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩)
+  | .moveK  => (⟨rank.val + 2, by omega⟩, ⟨0, by omega⟩)
 
 
 -- ------------------------------------------------------------
@@ -67,21 +70,29 @@ def rookAPos {n : Nat} (R : Fin n) (φ : LadderPhase) (h : R.val + 2 < n) : Pos 
 -- proposition: `LadderShape` reduces to `False` when the bound
 -- fails, and to a plain conjunction when it holds. This keeps the
 -- shape decidable without needing a hand-written instance.
-def LadderShape {n : Nat} (b : Board n) (R : Fin n) (φ : LadderPhase) : Prop :=
-  if h : R.val + 2 < n then
-    b.turn = .White ∧
-    b (kingPos R h) = some ⟨.White, .King⟩ ∧
-    b (rookBPos R φ h) = some ⟨.White, .Rook⟩ ∧
-    b (rookAPos R φ h) = some ⟨.White, .Rook⟩ ∧
-    (∀ p, (b p = some ⟨.White, .King⟩ ∨ b p = some ⟨.White, .Rook⟩) →
-          p = kingPos R h ∨ p = rookBPos R φ h ∨ p = rookAPos R φ h) ∧
-    (∃! bp, b bp = some ⟨.Black, .King⟩) ∧
-    (∀ p, b p ≠ some ⟨.Black, .Rook⟩) ∧
-    IsLegalSetup b
+def LadderShape {n : Nat} (board : Board n) (rank : Fin n)
+    (φ : LadderPhase) : Prop :=
+  if space_left : rank.val + 2 < n then
+    board.turn = .White ∧
+    board (kingPos rank space_left) = some ⟨.White, .King⟩ ∧
+    board (rookBPos rank φ space_left) =
+        some ⟨.White, .Rook⟩ ∧
+    board (rookAPos rank φ space_left) =
+        some ⟨.White, .Rook⟩ ∧
+    (∀ p, (board p = some ⟨.White, .King⟩ ∨
+           board p = some ⟨.White, .Rook⟩) →
+          p = kingPos rank space_left ∨
+          p = rookBPos rank φ space_left ∨
+          p = rookAPos rank φ space_left) ∧
+    (∃! bp, board bp = some ⟨.Black, .King⟩) ∧
+    (∀ bp, board bp = some ⟨.Black, .King⟩ →
+           (rookAPos rank φ space_left).1 < bp.1) ∧
+    (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
+    IsLegalSetup board
   else False
 
-instance {n : Nat} (b : Board n) (R : Fin n) (φ : LadderPhase) :
-    Decidable (LadderShape b R φ) := by
+instance {n : Nat} (board : Board n) (rank : Fin n) (φ : LadderPhase) :
+    Decidable (LadderShape board rank φ) := by
   unfold LadderShape ExistsUnique; infer_instance
 
 
@@ -91,12 +102,15 @@ instance {n : Nat} (b : Board n) (R : Fin n) (φ : LadderPhase) :
 -- `LadderShape` carries the bound `R.val + 2 < n` implicitly: if
 -- the bound fails, the proposition reduces to `False`. This lemma
 -- pulls the bound out so we can hand it to the move function.
-theorem LadderShape.hRfits {n : Nat} {b : Board n} {R : Fin n} {φ : LadderPhase}
-    (h : LadderShape b R φ) : R.val + 2 < n := by
-  unfold LadderShape at h
-  by_cases hbnd : R.val + 2 < n
+theorem LadderShape.hRfits {n : Nat} {board : Board n} {rank : Fin n}
+    {φ : LadderPhase}
+    (ladder_shape_hypothesis : LadderShape board rank φ) :
+    rank.val + 2 < n := by
+  unfold LadderShape at ladder_shape_hypothesis
+  by_cases hbnd : rank.val + 2 < n
   · exact hbnd
-  · rw [dif_neg hbnd] at h; exact h.elim
+  · rw [dif_neg hbnd] at ladder_shape_hypothesis
+    exact ladder_shape_hypothesis.elim
 
 
 -- ------------------------------------------------------------
@@ -105,13 +119,116 @@ theorem LadderShape.hRfits {n : Nat} {b : Board n} {R : Fin n} {φ : LadderPhase
 -- Given a `LadderShape` proof, return the (src, dst) pair for
 -- the unique White move dictated by the procedure. Total — the
 -- proof guarantees the bound holds.
-def nextWhiteMove {n : Nat} {b : Board n} {R : Fin n} {φ : LadderPhase}
-    (h : LadderShape b R φ) : Pos n × Pos n :=
-  have hbnd : R.val + 2 < n := h.hRfits
+def nextWhiteMove {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
+    (ladder_shape_hypothesis : LadderShape board rank φ) : Pos n × Pos n :=
+  have hbnd : rank.val + 2 < n := ladder_shape_hypothesis.hRfits
   match φ with
-  | .moveRb => (rookBPos R .moveRb hbnd, rookBPos R .moveRa hbnd)
-  | .moveRa => (rookAPos R .moveRa hbnd, rookAPos R .moveK  hbnd)
-  | .moveK  => (kingPos  R hbnd, (⟨R.val + 1, by omega⟩, ⟨0, by omega⟩))
+  | .moveRb => (rookBPos rank .moveRb hbnd, rookBPos rank .moveRa hbnd)
+  | .moveRa => (rookAPos rank .moveRa hbnd, rookAPos rank .moveK  hbnd)
+  | .moveK  =>
+      (kingPos rank hbnd, (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩))
+
+-- The move selected by the ladder procedure is always legal.
+theorem nextWhiteMove_isLegal {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (lsh : LadderShape board rank φ) :
+    IsLegalMove board
+      (nextWhiteMove lsh).1 (nextWhiteMove lsh).2 := by
+  sorry
+  -- ----------------------------------------------------------------
+  -- PROOF SKETCH
+  -- ----------------------------------------------------------------
+  -- `IsLegalMove board src dst` expands to two conjuncts:
+  --   A. The piece at src belongs to the side to move (White) and its
+  --      geometry is valid (rook: clear line; king: one-step).
+  --   B. `IsLegalSetup (applyMove board src dst)`, which itself splits:
+  --      B1. Exactly one White King exists on the new board.
+  --      B2. Exactly one Black King exists on the new board.
+  --      B3. `¬ IsCheck b' .White`  (b'.turn = Black after applyMove,
+  --          so b'.turn.opponent = White; i.e., White was not left in
+  --          check by its own move).
+  --
+  -- We proceed by case analysis on `φ`.  In each case we first unfold
+  -- `LadderShape` to obtain named hypotheses:
+  --   ht       : board.turn = .White
+  --   hK       : board (kingPos rank hbnd) = some ⟨.White, .King⟩
+  --   hRb      : board (rookBPos rank φ hbnd) = some ⟨.White, .Rook⟩
+  --   hRa      : board (rookAPos rank φ hbnd) = some ⟨.White, .Rook⟩
+  --   huniq    : all squares with a White piece are K, Rb, Ra
+  --   hbk      : ∃! bp, board bp = some ⟨.Black, .King⟩
+  --   hbk_above: ∀ bp, board bp = some ⟨.Black, .King⟩ →
+  --                rookAPos.1 < bp.1          -- Black King above rookA's rank
+  --   honly_k  : ∀ p k, board p = some ⟨.Black, k⟩ → k = .King
+  --   hsetup   : IsLegalSetup board
+  --              (which includes ¬ IsCheck board .Black, because it is
+  --               White's turn and the invariant forbids the opponent
+  --               to be in check at the start of a move)
+  --
+  -- ── Case φ = moveRb ─────────────────────────────────────────────
+  -- src = (rank, 1)   dst = (rank+1, 1)   (Rook B moves one rank up)
+  --
+  -- Goal A (right disjunct): board src = some ⟨.White, .Rook⟩  by hRb.
+  --   ValidRookMove: src and dst share column 1; they are adjacent
+  --   ranks, so no square lies strictly *between* them → path clear. ✓
+  --   (Rewrite board.turn via ht.)
+  --
+  -- Goal B1: White King is still uniquely at (rank, 0) — untouched. ✓
+  --
+  -- Goal B2: dst = (rank+1, 1) was empty before the move (no capture):
+  --   • Not a White piece: huniq places all White pieces at K, Rb, Ra,
+  --     none of which equals (rank+1, 1) in phase moveRb.
+  --   • Not the Black King: hbk_above gives rookAPos.1 = rank+1 < bp.1,
+  --     so the Black King is strictly above rank+1 and cannot be at
+  --     rank+1. ✓
+  --   Since no piece was at dst, the Black King is still unique. ✓
+  --
+  -- Goal B3: After the move, b'.turn = Black.  White King is at
+  --   (rank, 0).  The only Black piece is the Black King, at some row
+  --   > rank+1.  Row difference from rank is ≥ 2 > 1, so the Black
+  --   King is not adjacent to the White King → no check. ✓
+  --
+  -- ── Case φ = moveRa ─────────────────────────────────────────────
+  -- src = (rank+1, 0)   dst = (rank+2, 0)   (Rook A moves one rank up)
+  --
+  -- Goal A: board src = some ⟨.White, .Rook⟩  by hRa.
+  --   ValidRookMove: same column (col 0), adjacent ranks → path clear. ✓
+  --
+  -- Goal B2 (the interesting part): dst = (rank+2, 0) was empty:
+  --   • Not a White piece: huniq (K at (rank,0), Rb at (rank+1,1),
+  --     Ra at (rank+1,0) — none equals (rank+2,0)). ✓
+  --   • Not the Black King: suppose for contradiction the Black King is
+  --     at (rank+2, 0).  Then the White Rook Ra at (rank+1, 0) attacks
+  --     it along col 0 with no intervening piece (adjacent ranks).
+  --     That means IsCheck board .Black holds.  But hsetup contains
+  --     ¬ IsCheck board .Black (White to move, opponent = Black).
+  --     Contradiction. ✓
+  --
+  -- Goals B1, B3: same argument as moveRb case. ✓
+  --
+  -- ── Case φ = moveK ──────────────────────────────────────────────
+  -- src = (rank, 0)   dst = (rank+1, 0)   (King steps one rank up)
+  -- In phase moveK the pieces are: K=(rank,0), Rb=(rank+1,1), Ra=(rank+2,0).
+  --
+  -- Goal A (left disjunct): board src = some ⟨.White, .King⟩  by hK.
+  --   ValidKingMove: src ≠ dst (different rows), WithinOne rank (rank+1)
+  --   (differ by 1) ✓, WithinOne 0 0 (same column, differ by 0) ✓.
+  --
+  -- dst = (rank+1, 0) was empty before the king moves there:
+  --   • Not Rb (that's at (rank+1, 1), different column). ✓
+  --   • Not Ra (that's at (rank+2, 0), different rank). ✓
+  --   • Not the Black King: hbk_above gives Ra.1 = rank+2 < bp.1, so
+  --     the Black King is strictly above rank+2 and cannot be at
+  --     rank+1. ✓
+  --   No capture occurs; all three White pieces and the Black King
+  --   survive — uniqueness is preserved.
+  --
+  -- Goal B1: White King is now uniquely at (rank+1, 0). ✓
+  -- Goal B2: Black King unchanged (no capture). ✓
+  --
+  -- Goal B3: After the move, White King at (rank+1, 0).  Black King
+  --   is at some row > rank+2, so row difference from rank+1 is ≥ 2.
+  --   The Black King cannot attack the White King. ✓
+  -- ----------------------------------------------------------------
 
 
 -- ------------------------------------------------------------
@@ -119,10 +236,10 @@ def nextWhiteMove {n : Nat} {b : Board n} {R : Fin n} {φ : LadderPhase}
 -- ------------------------------------------------------------
 -- Returns the board after one White ply. `applyMove` already flips
 -- the turn, so the resulting board has Black to move.
-def ladderStep {n : Nat} {b : Board n} {R : Fin n} {φ : LadderPhase}
-    (h : LadderShape b R φ) : Board n :=
-  let move := nextWhiteMove h
-  applyMove b move.1 move.2
+def ladderStep {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
+    (ladder_shape_hypothesis : LadderShape board rank φ) : Board n :=
+  let move := nextWhiteMove ladder_shape_hypothesis
+  applyMove board move.1 move.2
 
 
 -- ------------------------------------------------------------
@@ -136,101 +253,35 @@ def nextPhase : LadderPhase → LadderPhase
   | .moveK  => .moveRb
 
 
--- ============================================================
--- SANITY TESTS
--- ============================================================
--- Build a concrete 8×8 board for each phase and check the move
--- function returns the expected (src, dst) pair.
-
-private def WK : Piece := ⟨.White, .King⟩
-private def WR : Piece := ⟨.White, .Rook⟩
-private def BK : Piece := ⟨.Black, .King⟩
-
--- Position shorthand for n=8 — `Fin 8` literals elaborate from numerals.
-private def sq8 (r c : Fin 8) : Pos 8 := (r, c)
-
--- A board with White {K@(0,0), R_b@(0,1), R_a@(1,0)} and Black {K@(3,3)}.
--- Phase = moveRb: about to move b-file rook up.
-private def boardRb : Board 8 where
-  pieces p :=
-    if p = sq8 0 0 then some WK
-    else if p = sq8 0 1 then some WR
-    else if p = sq8 1 0 then some WR
-    else if p = sq8 3 3 then some BK
-    else none
-  turn := .White
-
--- After move 1: R_b moved (0,1) → (1,1). Phase = moveRa.
-private def boardRa : Board 8 where
-  pieces p :=
-    if p = sq8 0 0 then some WK
-    else if p = sq8 1 1 then some WR
-    else if p = sq8 1 0 then some WR
-    else if p = sq8 3 3 then some BK
-    else none
-  turn := .White
-
--- After move 2: R_a moved (1,0) → (2,0). Phase = moveK.
-private def boardK : Board 8 where
-  pieces p :=
-    if p = sq8 0 0 then some WK
-    else if p = sq8 1 1 then some WR
-    else if p = sq8 2 0 then some WR
-    else if p = sq8 3 3 then some BK
-    else none
-  turn := .White
-
--- After move 3: K moved (0,0) → (1,0). Same shape with R = 1, phase = moveRb.
-private def boardRbShifted : Board 8 where
-  pieces p :=
-    if p = sq8 1 0 then some WK
-    else if p = sq8 1 1 then some WR
-    else if p = sq8 2 0 then some WR
-    else if p = sq8 3 3 then some BK
-    else none
-  turn := .White
+-- ------------------------------------------------------------
+-- RANK ADVANCEMENT
+-- ------------------------------------------------------------
+-- The base rank advances only on the moveK ply; the other two
+-- plies keep the same rank.
+def nextRank {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (space_left : rank.val + 2 < n) : Fin n :=
+  match φ with
+  | .moveK => ⟨rank.val + 1, by omega⟩
+  | _      => rank
 
 
--- The four boards each match their declared `LadderShape`.
-#guard decide (LadderShape boardRb         (0 : Fin 8) .moveRb)
-#guard decide (LadderShape boardRa         (0 : Fin 8) .moveRa)
-#guard decide (LadderShape boardK          (0 : Fin 8) .moveK)
-#guard decide (LadderShape boardRbShifted  (1 : Fin 8) .moveRb)
+-- ------------------------------------------------------------
+-- PRESERVATION THEOREM (statement only)
+-- ------------------------------------------------------------
+-- After one White ply (ladderStep) and any legal Black reply,
+-- the resulting board satisfies LadderShape for the advanced
+-- rank and the next phase.
+theorem LadderShape.preservation {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (lsh : LadderShape board rank φ)
+    {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    LadderShape
+      (applyMove (ladderStep lsh) bsrc bdst)
+      (nextRank rank φ lsh.hRfits)
+      (nextPhase φ) := by
+  sorry
 
 
--- The move function returns the expected (src, dst) for each phase.
-#guard nextWhiteMove (R := (0 : Fin 8)) (φ := .moveRb)
-        (by decide : LadderShape boardRb (0 : Fin 8) .moveRb)
-       == (sq8 0 1, sq8 1 1)
-
-#guard nextWhiteMove (R := (0 : Fin 8)) (φ := .moveRa)
-        (by decide : LadderShape boardRa (0 : Fin 8) .moveRa)
-       == (sq8 1 0, sq8 2 0)
-
-#guard nextWhiteMove (R := (0 : Fin 8)) (φ := .moveK)
-        (by decide : LadderShape boardK (0 : Fin 8) .moveK)
-       == (sq8 0 0, sq8 1 0)
-
-
--- Three plies starting from `boardRb` reach `boardRbShifted`.
-private def afterCycle : Board 8 :=
-  let b1 := ladderStep (b := boardRb) (R := (0 : Fin 8)) (φ := .moveRb)
-              (by decide)
-  -- Black "passes" by recording a non-move; but `applyMove` flips turn,
-  -- so we manually flip the turn back to White to feed the next ladder
-  -- step. (Real play interleaves a Black move; for this cycle-shape
-  -- check we use the all-White trajectory and only inspect piece
-  -- positions, not turns.)
-  let b1w : Board 8 := { b1 with turn := .White }
-  let b2 := ladderStep (b := b1w) (R := (0 : Fin 8)) (φ := .moveRa)
-              (by decide)
-  let b2w : Board 8 := { b2 with turn := .White }
-  let b3 := ladderStep (b := b2w) (R := (0 : Fin 8)) (φ := .moveK)
-              (by decide)
-  b3
-
--- After three White plies (with manual turn-resets), every square
--- matches `boardRbShifted` (modulo the final turn flip — both have
--- White to move on `boardRbShifted` but `afterCycle` has Black to
--- move because the last `applyMove` flipped it).
-#guard ∀ p ∈ allPositions 8, afterCycle.pieces p == boardRbShifted.pieces p
+-- **Termination / checkmate theorem**: to be stated later.
+-- `∃ k, IsCheckmate ((step ∘ blackReply)^[k] b) .Black`.
