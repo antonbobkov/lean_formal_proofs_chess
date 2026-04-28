@@ -1,5 +1,5 @@
 import ChessRules
-import Chess.proofs.TwoRookLadderMate
+import FunctionDefinition
 
 -- ============================================================
 -- SANITY TESTS for Two-Rook Ladder Mate
