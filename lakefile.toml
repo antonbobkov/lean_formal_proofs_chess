@@ -1,6 +1,6 @@
 name = "hello_world"
 version = "0.1.0"
-defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate"]
+defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TwoRookLadderMate"]
 
 [[require]]
 name = "mathlib"
@@ -25,4 +25,8 @@ srcDir = "Chess/proofs"
 
 [[lean_lib]]
 name = "TwoKingNoCheckmate"
+srcDir = "Chess/proofs"
+
+[[lean_lib]]
+name = "TwoRookLadderMate"
 srcDir = "Chess/proofs"
