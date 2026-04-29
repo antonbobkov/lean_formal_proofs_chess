@@ -313,6 +313,25 @@ instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
   unfold IsLegalSetup ExistsUnique; infer_instance
 
 
+/-- Checks if the target square is not occupied by a friendly piece -/
+def IsFriendlyOccupied {n : Nat} (b : Board n) (dst : Pos n) : Prop :=
+  ∃ p, b dst = some ⟨b.turn, p⟩
+
+instance  {n : Nat} (b : Board n) (dst : Pos n)
+  : Decidable (IsFriendlyOccupied b dst) := by
+    unfold IsFriendlyOccupied; infer_instance
+
+/-- Logic for how specific pieces move regardless of board state -/
+def PieceMoveLogic {n : Nat} (b : Board n) (src dst : Pos n) : PieceType → Prop
+  | .King => ValidKingMove src dst
+  | .Rook => ValidRookMove b src dst
+
+instance {n : Nat} (b : Board n) (src dst : Pos n) (piece : PieceType) :
+  Decidable (PieceMoveLogic b src dst piece) :=
+  match piece with
+  | .King => inferInstanceAs (Decidable (ValidKingMove src dst))
+  | .Rook => inferInstanceAs (Decidable (ValidRookMove b src dst))
+
 -- ------------------------------------------------------------
 -- IS A MOVE LEGAL?
 -- ------------------------------------------------------------
@@ -321,10 +340,14 @@ instance {n : Nat} (b : Board n) : Decidable (IsLegalSetup b) := by
 --     its movement is geometrically valid (king step or clear rook line); and
 --   * the resulting position satisfies `IsLegalSetup` — in particular,
 --     the moving side's king is not left in check.
+--   * it's not a capture of the same color
 def IsLegalMove {n : Nat} (b : Board n) (src dst : Pos n) : Prop :=
-  ((b src = some ⟨b.turn, .King⟩ ∧ ValidKingMove src dst) ∨
-   (b src = some ⟨b.turn, .Rook⟩ ∧ ValidRookMove b src dst)) ∧
-  IsLegalSetup (applyMove b src dst)
+  ∃ piece,
+    b src = some ⟨b.turn, piece⟩ ∧
+    PieceMoveLogic b src dst piece ∧
+    ¬ IsFriendlyOccupied b dst ∧
+    IsLegalSetup (applyMove b src dst)
 
-instance {n : Nat} (b : Board n) (src dst : Pos n) : Decidable (IsLegalMove b src dst) := by
-  unfold IsLegalMove; infer_instance
+instance {n : Nat} (b : Board n) (src dst : Pos n)
+  : Decidable (IsLegalMove b src dst) := by
+    unfold IsLegalMove; infer_instance

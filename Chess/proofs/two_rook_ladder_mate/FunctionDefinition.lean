@@ -85,7 +85,7 @@ def LadderShape {n : Nat} (board : Board n) (rank : Fin n)
           p = rookBPos rank φ space_left ∨
           p = rookAPos rank φ space_left) ∧
     (∀ bp, board bp = some ⟨.Black, .King⟩ →
-           (rookAPos rank φ space_left).1 < bp.1) ∧
+           (rookAPos rank φ space_left).1 < bp.1 ∧ 2 ≤ bp.2.val) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
     IsLegalSetup board
   else False

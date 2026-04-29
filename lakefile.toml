@@ -36,5 +36,9 @@ name = "TwoRookLadderMateTests"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
+name = "HelperLemmas"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
 name = "NextWhiteMoveIsLegal"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
