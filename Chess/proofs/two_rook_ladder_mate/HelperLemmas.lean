@@ -13,7 +13,15 @@ lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
 lemma KingUp_IsValid {n : Nat} (src tgt : Pos n)
     (same_col : src.file = tgt.file)
     (tgt_close : src.rank.val + 1 = tgt.rank.val) :
-    ValidKingMove src tgt := by sorry
+    ValidKingMove src tgt := by
+  have hf : src.file.val = tgt.file.val := congrArg Fin.val same_col
+  refine ⟨?_, ?_, ?_⟩
+  · intro h
+    have := congrArg (·.rank.val) h
+    simp at this
+    omega
+  · unfold WithinOne; omega
+  · unfold WithinOne; omega
 
 -- if we start from IsLegalSetup, and make any move into an empty square,
 -- then there is a unique black king and a unique white king
