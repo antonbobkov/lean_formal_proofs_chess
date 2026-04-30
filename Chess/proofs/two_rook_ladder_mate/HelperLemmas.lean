@@ -38,7 +38,62 @@ lemma NoCaputureMove_PreservesKings {n : Nat} (b : Board n)
     (tgt_empty : b tgt = none) :
   let b_new := applyMove b src tgt
   (∃! wp : Pos n, b_new wp = some ⟨.White, .King⟩) ∧
-  (∃! bp : Pos n, b_new bp = some ⟨.Black, .King⟩) := by sorry
+  (∃! bp : Pos n, b_new bp = some ⟨.Black, .King⟩) := by
+  show (∃! wp : Pos n, (applyMove b src tgt) wp = some ⟨.White, .King⟩) ∧
+       (∃! bp : Pos n, (applyMove b src tgt) bp = some ⟨.Black, .King⟩)
+  obtain ⟨wkU, bkU, _⟩ := legal_start
+  have applyMove_eq : ∀ p,
+      (applyMove b src tgt) p =
+        if p = tgt then b src else if p = src then none else b p := by
+    intro p
+    show (applyMove b src tgt).pieces p = _
+    unfold applyMove
+    by_cases h1 : p = tgt
+    · simp [h1]
+    · by_cases h2 : p = src
+      · simp [h2]
+      · simp [h1, h2]
+  have preserve : ∀ (P : Piece) (_ : ∃! u, b u = some P),
+      ∃! u, (applyMove b src tgt) u = some P := by
+    intro P ⟨u, hu, hu_uniq⟩
+    have hu_ne_tgt : u ≠ tgt := by
+      intro h
+      rw [h, tgt_empty] at hu
+      cases hu
+    by_cases hsrc_eq : src = u
+    · refine ⟨tgt, ?_, ?_⟩
+      · show (applyMove b src tgt) tgt = _
+        rw [applyMove_eq, if_pos rfl, hsrc_eq]; exact hu
+      · intro y hy
+        rw [applyMove_eq] at hy
+        by_cases h1 : y = tgt
+        · exact h1
+        · rw [if_neg h1] at hy
+          by_cases h2 : y = src
+          · rw [if_pos h2] at hy
+            cases hy
+          · rw [if_neg h2] at hy
+            have hyu := hu_uniq y hy
+            exact absurd (hyu.trans hsrc_eq.symm) h2
+    · have hbsrc_ne : b src ≠ some P := by
+        intro hbsrc
+        exact hsrc_eq (hu_uniq src hbsrc).symm.symm
+      have hu_ne_src : u ≠ src := fun h => hsrc_eq h.symm
+      refine ⟨u, ?_, ?_⟩
+      · show (applyMove b src tgt) u = _
+        rw [applyMove_eq, if_neg hu_ne_tgt, if_neg hu_ne_src]; exact hu
+      · intro y hy
+        rw [applyMove_eq] at hy
+        by_cases h1 : y = tgt
+        · rw [if_pos h1] at hy
+          exact absurd hy hbsrc_ne
+        · rw [if_neg h1] at hy
+          by_cases h2 : y = src
+          · rw [if_pos h2] at hy
+            cases hy
+          · rw [if_neg h2] at hy
+            exact hu_uniq y hy
+  exact ⟨preserve _ wkU, preserve _ bkU⟩
 
 -- if white king is at least two files away from black king,
 -- and black king is the only black piece,
