@@ -91,7 +91,42 @@ lemma LadderShape_NoWhiteAboveRb {n : Nat} {board : Board n} {rank : Fin n}
 lemma LadderShape_BlackKingFile0_InCheck {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
     (bp : Pos n) (hbp : board bp = some ⟨.Black, .King⟩) (hfile : bp.file.val = 0) :
-    IsCheck board .Black := by sorry
+    IsCheck board .Black := by
+  obtain ⟨_, _, _, hRa_at, _, black_loc, only_bk, _, ⟨bkW, _, hbk_uniq⟩, _⟩
+    := lsh.unfold
+  have h := lsh.hRfits
+  have hRa_rank_lt : (rookAPos rank φ h).rank.val < bp.rank.val := black_loc bp hbp
+  have hRa_file : (rookAPos rank φ h).file.val = 0 := by cases φ <;> simp [rookAPos]
+  refine ⟨bp, hbp, rookAPos rank φ h, .inl ⟨hRa_at, ?_⟩⟩
+  refine ⟨?_, .inr ⟨?_, ?_⟩⟩
+  · -- rookAPos ≠ bp (different ranks)
+    intro heq
+    have : (rookAPos rank φ h).rank.val = bp.rank.val := by rw [heq]
+    omega
+  · -- same file (as Fin n)
+    apply Fin.ext; omega
+  · -- no piece strictly between rookAPos and bp on file 0
+    intro q hqfile hbet
+    have hqf0 : q.file.val = 0 := by
+      have hq_eq_Ra : q.file.val = (rookAPos rank φ h).file.val := by rw [hqfile]
+      omega
+    have hq_rank_above : (rookAPos rank φ h).rank.val < q.rank.val := by
+      unfold Between at hbet; omega
+    have no_white := LadderShape_NoWhiteAboveRa lsh q hqf0 hq_rank_above
+    rcases hboard : board q with _ | ⟨c, kind⟩
+    · rfl
+    · exfalso
+      cases c with
+      | White => exact no_white kind hboard
+      | Black =>
+        have hk : kind = .King := only_bk q kind hboard
+        subst hk
+        have h_q_eq : q = bkW := hbk_uniq q hboard
+        have h_bp_eq : bp = bkW := hbk_uniq bp hbp
+        have hq_eq_bp : q = bp := h_q_eq.trans h_bp_eq.symm
+        rw [hq_eq_bp] at hbet
+        unfold Between at hbet
+        omega
 
 -- A black king on file 1 would be in check from `rookBPos` (which sits on
 -- file 1 below the black king with an empty path between them).
