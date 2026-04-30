@@ -121,6 +121,22 @@ lemma EmptySquare_NotFriendly {n : Nat} (b : Board n) (dst : Pos n)
   rw [dst_empty] at h
   cases h
 
+-- A non-capture move preserves any piece sitting on a square other
+-- than `src`. `tgt`-emptiness rules out `p = tgt` (since `b p = some _`
+-- can't equal `b tgt = none`), and `src ≠ p` rules out the cleared
+-- square; everywhere else `applyMove` returns `b p` unchanged.
+lemma NoCaptureMove_PreservesPiece {n : Nat} (b : Board n) (src tgt p : Pos n)
+    (pc : Piece) (h_p_at : b p = some pc) (h_src_ne_p : src ≠ p)
+    (tgt_empty : b tgt = none) :
+    (applyMove b src tgt) p = some pc := by
+  show (applyMove b src tgt).pieces p = some pc
+  unfold applyMove
+  have h_p_ne_tgt : p ≠ tgt := by
+    intro heq; rw [heq, tgt_empty] at h_p_at; cases h_p_at
+  have h_p_ne_src : p ≠ src := fun h => h_src_ne_p h.symm
+  simp [h_p_ne_tgt, h_p_ne_src]
+  exact h_p_at
+
 -- any move on a board where every black piece is a king preserves
 -- that property: the only piece relocated lands at `tgt`, and if it
 -- was black it was a king by hypothesis.

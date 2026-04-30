@@ -1,6 +1,7 @@
 import ChessRules
 import FunctionDefinition
 import HelperLemmas
+import NextWhiteMoveIsLegal
 
 -- ============================================================
 -- LADDER SHAPE PRESERVATION
@@ -53,6 +54,210 @@ lemma LadderShape_OnlyBlackKingPreserved {n : Nat} {board : Board n}
   have step_only_bk : ∀ p k, (ladderStep lsh) p = some ⟨.Black, k⟩ → k = .King :=
     applyMove_PreservesOnlyBlackKing board _ _ only_bk
   exact applyMove_PreservesOnlyBlackKing _ _ _ step_only_bk
+
+
+-- ------------------------------------------------------------
+-- WHITE-PIECE POSITIONS AFTER ONE LADDER PLY (lemma A)
+-- ------------------------------------------------------------
+-- After white's ladder ply, the three white pieces sit at specific
+-- squares determined by the original phase. Two pieces are unchanged
+-- (proved via `NoCaptureMove_PreservesPiece`); the third is at the
+-- move's `dst`. We split by phase because the configuration after
+-- moveK has the king on rank+1, which doesn't match any
+-- `LadderShape` position helper using the original `h`.
+
+-- Phase moveRb: white moves Rb (rank,1) → (rank+1,1).
+-- Resulting positions match `LadderShape` for (rank, .moveRa).
+lemma LadderStep_PiecesAt_moveRb {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRb) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    b' (kingPos rank h) = some ⟨.White, .King⟩ ∧
+    b' (rookBPos rank .moveRa h) = some ⟨.White, .Rook⟩ ∧
+    b' (rookAPos rank .moveRa h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
+  have dst_empty := LadderMove_IntoEmptySquare lsh
+  show
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (kingPos rank lsh.hRfits) = some ⟨.White, .King⟩ ∧
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (rookBPos rank .moveRa lsh.hRfits) = some ⟨.White, .Rook⟩ ∧
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (rookAPos rank .moveRa lsh.hRfits) = some ⟨.White, .Rook⟩
+  have h_src_eq : (nextWhiteMove lsh).1 = rookBPos rank .moveRb lsh.hRfits := rfl
+  refine ⟨?_, ?_, ?_⟩
+  · -- King unchanged at (rank, 0)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hK_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.file.val) heq
+    simp [kingPos, rookBPos] at this
+  · -- Rb moved to (rank+1, 1) = dst
+    show (applyMove board _ (rookBPos rank .moveRa lsh.hRfits)).pieces _ = _
+    unfold applyMove; simp; rw [h_src_eq]; exact hRb_at
+  · -- Ra unchanged at (rank+1, 0)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRa_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.file.val) heq
+    simp [rookBPos, rookAPos] at this
+
+-- Phase moveRa: white moves Ra (rank+1,0) → (rank+2,0).
+-- Resulting positions match `LadderShape` for (rank, .moveK).
+lemma LadderStep_PiecesAt_moveRa {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRa) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    b' (kingPos rank h) = some ⟨.White, .King⟩ ∧
+    b' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
+    b' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
+  have dst_empty := LadderMove_IntoEmptySquare lsh
+  show
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (kingPos rank lsh.hRfits) = some ⟨.White, .King⟩ ∧
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (rookBPos rank .moveK lsh.hRfits) = some ⟨.White, .Rook⟩ ∧
+    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
+      (rookAPos rank .moveK lsh.hRfits) = some ⟨.White, .Rook⟩
+  have h_src_eq : (nextWhiteMove lsh).1 = rookAPos rank .moveRa lsh.hRfits := rfl
+  refine ⟨?_, ?_, ?_⟩
+  · -- King unchanged at (rank, 0)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hK_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.rank.val) heq
+    simp [kingPos, rookAPos] at this
+  · -- Rb unchanged at (rank+1, 1)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRb_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.file.val) heq
+    simp [rookBPos, rookAPos] at this
+  · -- Ra moved to (rank+2, 0) = dst
+    show (applyMove board _ (rookAPos rank .moveK lsh.hRfits)).pieces _ = _
+    unfold applyMove; simp; rw [h_src_eq]; exact hRa_at
+
+-- Phase moveK: white moves K (rank,0) → (rank+1,0).
+-- The king's new square doesn't match any `kingPos rank _`, so we use
+-- the raw position (which is `(nextWhiteMove lsh).2`).
+lemma LadderStep_PiecesAt_moveK {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveK) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    b' (nextWhiteMove lsh).2 = some ⟨.White, .King⟩ ∧
+    b' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
+    b' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
+  have dst_empty := LadderMove_IntoEmptySquare lsh
+  have h_src_eq : (nextWhiteMove lsh).1 = kingPos rank lsh.hRfits := rfl
+  refine ⟨?_, ?_, ?_⟩
+  · -- King moved to dst
+    show (applyMove board _ _).pieces _ = _
+    unfold applyMove; simp; rw [h_src_eq]; exact hK_at
+  · -- Rb unchanged at (rank+1, 1)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRb_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.file.val) heq
+    simp [kingPos, rookBPos] at this
+  · -- Ra unchanged at (rank+2, 0)
+    apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRa_at _ dst_empty
+    rw [h_src_eq]; intro heq
+    have := congrArg (fun p : Pos n => p.rank.val) heq
+    simp [kingPos, rookAPos] at this
+
+
+-- ------------------------------------------------------------
+-- WHITE-PIECE PRESERVATION (assumption S: black's move is non-capture)
+-- ------------------------------------------------------------
+-- Under the simplifying assumption that black's move targets an empty
+-- square (no white piece is captured), every white piece is preserved
+-- by the full White+Black cycle. The argument: lemma A gives the
+-- post-white positions; the black piece sits on a black square, so
+-- `bsrc` differs from each white square; lemma B then propagates each
+-- white piece across black's ply.
+
+-- Helper: bsrc carries a black piece (since `IsLegalMove`'s piece
+-- belongs to the side to move, which is `(ladderStep lsh).turn = Black`).
+private lemma blackMove_src_isBlack {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (lsh : LadderShape board rank φ) {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    ∃ k, (ladderStep lsh) bsrc = some ⟨.Black, k⟩ := by
+  obtain ⟨turn_white, _⟩ := lsh.unfold
+  obtain ⟨piece, hat_src, _⟩ := black_move
+  have h_turn : (ladderStep lsh).turn = .Black := by
+    show board.turn.opponent = .Black
+    rw [turn_white]; rfl
+  rw [h_turn] at hat_src
+  exact ⟨piece, hat_src⟩
+
+-- Closes a "white piece preservation" goal using a step-board hypothesis
+-- `h_pc_at : (ladderStep lsh) p = some ⟨.White, _⟩` and the fact that
+-- bsrc carries a black piece.
+private lemma whitePiecePreserved {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    {lsh : LadderShape board rank φ} {bsrc bdst p : Pos n} {pc : Piece}
+    (h_pc_at : (ladderStep lsh) p = some pc)
+    (h_white : pc.color = .White)
+    (h_bsrc_black : ∃ k, (ladderStep lsh) bsrc = some ⟨.Black, k⟩)
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    (applyMove (ladderStep lsh) bsrc bdst) p = some pc := by
+  obtain ⟨k, hbsrc⟩ := h_bsrc_black
+  refine NoCaptureMove_PreservesPiece _ _ _ _ _ h_pc_at ?_ bdst_empty
+  intro heq
+  rw [heq, h_pc_at] at hbsrc
+  rw [Option.some.injEq] at hbsrc
+  have : pc.color = (⟨.Black, k⟩ : Piece).color := congrArg Piece.color hbsrc
+  rw [h_white] at this
+  cases this
+
+-- moveRb case
+lemma LadderShape_WhitePiecesPreserved_moveRb {n : Nat} {board : Board n}
+    {rank : Fin n}
+    (lsh : LadderShape board rank .moveRb) {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst)
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    let h := lsh.hRfits
+    let b'' := applyMove (ladderStep lsh) bsrc bdst
+    b'' (kingPos rank h) = some ⟨.White, .King⟩ ∧
+    b'' (rookBPos rank .moveRa h) = some ⟨.White, .Rook⟩ ∧
+    b'' (rookAPos rank .moveRa h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨hK_step, hRb_step, hRa_step⟩ := LadderStep_PiecesAt_moveRb lsh
+  have hbsrc := blackMove_src_isBlack lsh black_move
+  exact ⟨whitePiecePreserved hK_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRb_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRa_step rfl hbsrc bdst_empty⟩
+
+-- moveRa case
+lemma LadderShape_WhitePiecesPreserved_moveRa {n : Nat} {board : Board n}
+    {rank : Fin n}
+    (lsh : LadderShape board rank .moveRa) {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst)
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    let h := lsh.hRfits
+    let b'' := applyMove (ladderStep lsh) bsrc bdst
+    b'' (kingPos rank h) = some ⟨.White, .King⟩ ∧
+    b'' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
+    b'' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨hK_step, hRb_step, hRa_step⟩ := LadderStep_PiecesAt_moveRa lsh
+  have hbsrc := blackMove_src_isBlack lsh black_move
+  exact ⟨whitePiecePreserved hK_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRb_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRa_step rfl hbsrc bdst_empty⟩
+
+-- moveK case
+lemma LadderShape_WhitePiecesPreserved_moveK {n : Nat} {board : Board n}
+    {rank : Fin n}
+    (lsh : LadderShape board rank .moveK) {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst)
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    let h := lsh.hRfits
+    let b'' := applyMove (ladderStep lsh) bsrc bdst
+    b'' (nextWhiteMove lsh).2 = some ⟨.White, .King⟩ ∧
+    b'' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
+    b'' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
+  obtain ⟨hK_step, hRb_step, hRa_step⟩ := LadderStep_PiecesAt_moveK lsh
+  have hbsrc := blackMove_src_isBlack lsh black_move
+  exact ⟨whitePiecePreserved hK_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRb_step rfl hbsrc bdst_empty,
+         whitePiecePreserved hRa_step rfl hbsrc bdst_empty⟩
 
 
 -- ------------------------------------------------------------
