@@ -1,6 +1,6 @@
 name = "hello_world"
 version = "0.1.0"
-defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "FunctionDefinition", "TwoRookLadderMateTests", "NextWhiteMoveIsLegal"]
+defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "FunctionDefinition", "TwoRookLadderMateTests", "NextWhiteMoveIsLegal", "Preservation"]
 
 [[require]]
 name = "mathlib"
@@ -41,4 +41,8 @@ srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
 name = "NextWhiteMoveIsLegal"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "Preservation"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
