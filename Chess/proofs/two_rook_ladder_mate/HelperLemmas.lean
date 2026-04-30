@@ -4,8 +4,18 @@ import FunctionDefinition
 -- if a square above rook is empty, then moving into that
 -- square is ValidRookMove
 lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
-    (tgt_empty : b tgt = none) (tgt_close : src.rank.val + 1 = tgt.rank.val) :
-    ValidRookMove b src tgt := by sorry
+    (_tgt_empty : b tgt = none) (same_col : src.file = tgt.file)
+    (tgt_close : src.rank.val + 1 = tgt.rank.val) :
+    ValidRookMove b src tgt := by
+  refine ⟨?_, .inr ⟨same_col, ?_⟩⟩
+  · intro h
+    have := congrArg (·.rank.val) h
+    simp at this
+    omega
+  · intro p hpfile hbet
+    -- between rank src and rank tgt with diff 1, no integer strictly between
+    unfold Between at hbet
+    omega
 
 -- king analogue of RookUpEmpty_IsValid: a king step up by one rank
 -- in the same file is a ValidKingMove (no emptiness needed — kings

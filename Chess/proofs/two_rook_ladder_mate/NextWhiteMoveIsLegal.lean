@@ -249,11 +249,11 @@ theorem nextWhiteMove_isLegal {n : Nat} {board : Board n}
   | moveRb =>
     apply LadderMove_LegalIfMoveValid lsh .Rook
     · rw [turn_white]; exact hRb
-    · exact RookUpEmpty_IsValid _ _ _ dst_empty rfl
+    · exact RookUpEmpty_IsValid _ _ _ dst_empty rfl rfl
   | moveRa =>
     apply LadderMove_LegalIfMoveValid lsh .Rook
     · rw [turn_white]; exact hRa
-    · exact RookUpEmpty_IsValid _ _ _ dst_empty rfl
+    · exact RookUpEmpty_IsValid _ _ _ dst_empty rfl rfl
   | moveK =>
     apply LadderMove_LegalIfMoveValid lsh .King
     · rw [turn_white]; exact hK
