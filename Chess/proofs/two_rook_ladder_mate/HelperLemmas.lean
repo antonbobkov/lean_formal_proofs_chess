@@ -24,24 +24,15 @@ lemma NoCaputureMove_PreservesKings {n : Nat} (b : Board n)
   (∃! wp : Pos n, b_new wp = some ⟨.White, .King⟩) ∧
   (∃! bp : Pos n, b_new bp = some ⟨.Black, .King⟩) := by sorry
 
--- if white king is at least two columns away from black king,
+-- if white king is at least two files away from black king,
 -- and black king is the only black piece,
 -- then white king is not in check
-lemma OpponentOnlyKing_NoCheck {n : Nat} (b : Board n)
+lemma OpponentOnlyKingFarAway_NoCheck {n : Nat} (b : Board n)
     (only_black_king : ∀ p k, b p = some ⟨.Black, k⟩ → k = .King)
-    (kings_close : ∀ pw pb : Pos n,
+    (kings_apart : ∀ pw pb : Pos n,
       (b pw = some ⟨.White, .King⟩ ∧ b pb = some ⟨.Black, .King⟩) →
-      pw.1.val + 2 <= pb.1.val) :
+      pw.2.val + 2 <= pb.2.val) :
     ¬ IsCheck b .White := by sorry
-
-lemma LadderShape_KingsRowsApart {n : Nat} {board : Board n} {rank : Fin n}
-  {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
-     (∀ bp, board bp = some ⟨.Black, .King⟩ → bp.2.val >= 2) := by sorry
-
-lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
-  {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
-    let dst := (nextWhiteMove ladder_shape).2
-    board dst = none := by sorry
 
 -- an empty target square cannot be friendly-occupied, regardless of
 -- whose turn it is.
@@ -58,15 +49,3 @@ lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
     let move := nextWhiteMove ladder_shape
     let b'   := applyMove board move.1 move.2
     ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by sorry
-
--- after applying nextWhiteMove, every (white-king, black-king) pair is
--- separated by at least two ranks. Bundles the per-phase arithmetic so
--- the main legality proof can be phase-agnostic.
-lemma LadderMove_KingsRowsApart {n : Nat} {board : Board n}
-    {rank : Fin n} {φ : LadderPhase}
-    (ladder_shape : LadderShape board rank φ) :
-    let move := nextWhiteMove ladder_shape
-    let b'   := applyMove board move.1 move.2
-    ∀ pw pb : Pos n,
-      (b' pw = some ⟨.White, .King⟩ ∧ b' pb = some ⟨.Black, .King⟩) →
-      pw.1.val + 2 ≤ pb.1.val := by sorry
