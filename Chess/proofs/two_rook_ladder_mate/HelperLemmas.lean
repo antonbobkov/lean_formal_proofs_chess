@@ -38,7 +38,10 @@ lemma OpponentOnlyKingFarAway_NoCheck {n : Nat} (b : Board n)
 -- whose turn it is.
 lemma EmptySquare_NotFriendly {n : Nat} (b : Board n) (dst : Pos n)
     (dst_empty : b dst = none) :
-    ¬ IsFriendlyOccupied b dst := by sorry
+    ¬ IsFriendlyOccupied b dst := by
+  rintro ⟨_, h⟩
+  rw [dst_empty] at h
+  cases h
 
 -- after applying nextWhiteMove, every black-occupied square is still a
 -- black king. White moves cannot create new black pieces; they only
