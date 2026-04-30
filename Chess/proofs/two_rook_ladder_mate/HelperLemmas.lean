@@ -1,10 +1,9 @@
 import ChessRules
 import FunctionDefinition
 
--- if a square above rook is empty, then moving into that
--- square is ValidRookMove
-lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
-    (_tgt_empty : b tgt = none) (same_col : src.file = tgt.file)
+-- moving rook into a square one rank up in the same file is a ValidRookMove
+lemma RookUp_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
+    (same_col : src.file = tgt.file)
     (tgt_close : src.rank.val + 1 = tgt.rank.val) :
     ValidRookMove b src tgt := by
   refine ⟨?_, .inr ⟨same_col, ?_⟩⟩
@@ -17,7 +16,7 @@ lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
     unfold Between at hbet
     omega
 
--- king analogue of RookUpEmpty_IsValid: a king step up by one rank
+-- king analogue of RookUp_IsValid: a king step up by one rank
 -- in the same file is a ValidKingMove
 lemma KingUp_IsValid {n : Nat} (src tgt : Pos n)
     (same_col : src.file = tgt.file)
