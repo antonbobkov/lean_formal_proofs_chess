@@ -23,7 +23,7 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
           p = rookBPos rank φ h ∨
           p = rookAPos rank φ h) ∧
     (∀ bp, board bp = some ⟨.Black, .King⟩ →
-           (rookAPos rank φ h).rank < bp.rank ∧ 2 ≤ bp.file.val) ∧
+           (rookAPos rank φ h).rank < bp.rank) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
     IsLegalSetup board := by
   have hbnd := lsh.hRfits
@@ -31,6 +31,38 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
   unfold LadderShape at h
   rw [dif_pos hbnd] at h
   exact h
+
+-- No white piece sits strictly above `rookAPos` on its file (file 0).
+-- Follows from `LadderShape`'s `white_pos` clause: every white piece is
+-- one of K, R_b, R_a, and none of those occupies a square above R_a on
+-- file 0 in any phase.
+lemma LadderShape_NoWhiteAboveRa {n : Nat} {board : Board n} {rank : Fin n}
+    {φ : LadderPhase} (lsh : LadderShape board rank φ) (p : Pos n)
+    (hfile : p.file.val = 0)
+    (habove : (rookAPos rank φ lsh.hRfits).rank.val < p.rank.val) :
+    ∀ k, board p ≠ some ⟨.White, k⟩ := by sorry
+
+-- No white piece sits strictly above `rookBPos` on its file (file 1).
+-- Same shape as `LadderShape_NoWhiteAboveRa`.
+lemma LadderShape_NoWhiteAboveRb {n : Nat} {board : Board n} {rank : Fin n}
+    {φ : LadderPhase} (lsh : LadderShape board rank φ) (p : Pos n)
+    (hfile : p.file.val = 1)
+    (habove : (rookBPos rank φ lsh.hRfits).rank.val < p.rank.val) :
+    ∀ k, board p ≠ some ⟨.White, k⟩ := by sorry
+
+-- A black king on file 0 would be in check from `rookAPos` (which sits on
+-- file 0 below the black king with an empty path between them).
+lemma LadderShape_BlackKingFile0_InCheck {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    (bp : Pos n) (hbp : board bp = some ⟨.Black, .King⟩) (hfile : bp.file.val = 0) :
+    IsCheck board .Black := by sorry
+
+-- A black king on file 1 would be in check from `rookBPos` (which sits on
+-- file 1 below the black king with an empty path between them).
+lemma LadderShape_BlackKingFile1_InCheck {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    (bp : Pos n) (hbp : board bp = some ⟨.Black, .King⟩) (hfile : bp.file.val = 1) :
+    IsCheck board .Black := by sorry
 
 lemma LadderShape_KingsApart {n : Nat} {board : Board n} {rank : Fin n}
   {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
@@ -147,7 +179,7 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
       · rw [if_pos h2] at hpb; simp at hpb
       · rw [if_neg h2] at hpb; exact hpb
   have h_pw_col : pw.file.val = 0 := LadderMove_WhiteKingCol0 ladder_shape pw hpw
-  have h_pb_col : 2 ≤ pb.file.val := (black_loc pb hb_pb).2
+  have h_pb_col : 2 ≤ pb.file.val := LadderShape_KingsApart ladder_shape pb hb_pb
   omega
 
 
