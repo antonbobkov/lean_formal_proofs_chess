@@ -50,7 +50,14 @@ lemma OpponentOnlyKingFarAway_NoCheck {n : Nat} (b : Board n)
     (kings_apart : ∀ pw pb : Pos n,
       (b pw = some ⟨.White, .King⟩ ∧ b pb = some ⟨.Black, .King⟩) →
       pw.file.val + 2 <= pb.file.val) :
-    ¬ IsCheck b .White := by sorry
+    ¬ IsCheck b .White := by
+  rintro ⟨wkPos, hwk, attacker, hatt⟩
+  rcases hatt with ⟨hr, _⟩ | ⟨hbk, hkmove⟩
+  · exact PieceType.noConfusion (only_black_king attacker .Rook hr)
+  · obtain ⟨_, _, hwo⟩ := hkmove
+    have apart := kings_apart wkPos attacker ⟨hwk, hbk⟩
+    unfold WithinOne at hwo
+    omega
 
 -- an empty target square cannot be friendly-occupied, regardless of
 -- whose turn it is.
