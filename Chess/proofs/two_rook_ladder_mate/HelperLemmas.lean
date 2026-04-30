@@ -4,15 +4,15 @@ import FunctionDefinition
 -- if a square above rook is empty, then moving into that
 -- square is ValidRookMove
 lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
-    (tgt_empty : b tgt = none) (tgt_close : src.1.val + 1 = tgt.1.val) :
+    (tgt_empty : b tgt = none) (tgt_close : src.rank.val + 1 = tgt.rank.val) :
     ValidRookMove b src tgt := by sorry
 
 -- king analogue of RookUpEmpty_IsValid: a king step up by one rank
 -- in the same file is a ValidKingMove (no emptiness needed — kings
 -- don't slide).
 lemma KingUp_IsValid {n : Nat} (src tgt : Pos n)
-    (same_col : src.2 = tgt.2)
-    (tgt_close : src.1.val + 1 = tgt.1.val) :
+    (same_col : src.file = tgt.file)
+    (tgt_close : src.rank.val + 1 = tgt.rank.val) :
     ValidKingMove src tgt := by sorry
 
 -- if we start from IsLegalSetup, and make any move into an empty square,
@@ -31,7 +31,7 @@ lemma OpponentOnlyKingFarAway_NoCheck {n : Nat} (b : Board n)
     (only_black_king : ∀ p k, b p = some ⟨.Black, k⟩ → k = .King)
     (kings_apart : ∀ pw pb : Pos n,
       (b pw = some ⟨.White, .King⟩ ∧ b pb = some ⟨.Black, .King⟩) →
-      pw.2.val + 2 <= pb.2.val) :
+      pw.file.val + 2 <= pb.file.val) :
     ¬ IsCheck b .White := by sorry
 
 -- an empty target square cannot be friendly-occupied, regardless of

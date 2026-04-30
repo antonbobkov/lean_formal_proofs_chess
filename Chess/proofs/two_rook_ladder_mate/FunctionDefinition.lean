@@ -46,21 +46,21 @@ inductive LadderPhase
 
 def kingPos {n : Nat} (rank : Fin n)
     (space_left : rank.val + 2 < n) : Pos n :=
-  (rank, ⟨0, by omega⟩)
+  ⟨rank, ⟨0, by omega⟩⟩
 
 def rookBPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
     (space_left : rank.val + 2 < n) : Pos n :=
   match φ with
-  | .moveRb => (rank, ⟨1, by omega⟩)
-  | .moveRa => (⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩)
-  | .moveK  => (⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩)
+  | .moveRb => ⟨rank, ⟨1, by omega⟩⟩
+  | .moveRa => ⟨⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩⟩
+  | .moveK  => ⟨⟨rank.val + 1, by omega⟩, ⟨1, by omega⟩⟩
 
 def rookAPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
     (space_left : rank.val + 2 < n) : Pos n :=
   match φ with
-  | .moveRb => (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩)
-  | .moveRa => (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩)
-  | .moveK  => (⟨rank.val + 2, by omega⟩, ⟨0, by omega⟩)
+  | .moveRb => ⟨⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩⟩
+  | .moveRa => ⟨⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩⟩
+  | .moveK  => ⟨⟨rank.val + 2, by omega⟩, ⟨0, by omega⟩⟩
 
 
 -- ------------------------------------------------------------
@@ -85,7 +85,7 @@ def LadderShape {n : Nat} (board : Board n) (rank : Fin n)
           p = rookBPos rank φ space_left ∨
           p = rookAPos rank φ space_left) ∧
     (∀ bp, board bp = some ⟨.Black, .King⟩ →
-           (rookAPos rank φ space_left).1 < bp.1 ∧ 2 ≤ bp.2.val) ∧
+           (rookAPos rank φ space_left).rank < bp.rank ∧ 2 ≤ bp.file.val) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
     IsLegalSetup board
   else False
@@ -125,7 +125,7 @@ def nextWhiteMove {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
   | .moveRb => (rookBPos rank .moveRb hbnd, rookBPos rank .moveRa hbnd)
   | .moveRa => (rookAPos rank .moveRa hbnd, rookAPos rank .moveK  hbnd)
   | .moveK  =>
-      (kingPos rank hbnd, (⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩))
+      (kingPos rank hbnd, ⟨⟨rank.val + 1, by omega⟩, ⟨0, by omega⟩⟩)
 
 
 -- ------------------------------------------------------------

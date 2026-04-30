@@ -15,7 +15,7 @@ theorem WithinOne_comm (a b : Nat) : WithinOne a b ↔ WithinOne b a := by
 theorem ValidKingMove_comm {n : Nat} (a b : Pos n) :
     ValidKingMove a b ↔ ValidKingMove b a := by
   unfold ValidKingMove
-  rw [WithinOne_comm a.1.val b.1.val, WithinOne_comm a.2.val b.2.val]
+  rw [WithinOne_comm a.rank.val b.rank.val, WithinOne_comm a.file.val b.file.val]
   exact ⟨fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩, fun ⟨h, x, y⟩ => ⟨h.symm, x, y⟩⟩
 
 

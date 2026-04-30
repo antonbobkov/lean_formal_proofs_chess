@@ -37,7 +37,7 @@ private def BR : Piece := ⟨.Black, .Rook⟩  -- Black Rook
 -- Square shorthand: takes a row and column as `Fin 4` literals.
 -- Numeric literals like `0`, `3` are automatically elaborated as
 -- `Fin 4` because that's the declared parameter type.
-private def sq4 (r c : Fin 4) : Pos 4 := (r, c)
+private def sq4 (r c : Fin 4) : Pos 4 := ⟨r, c⟩
 
 
 -- ============================================================

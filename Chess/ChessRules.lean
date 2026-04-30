@@ -68,20 +68,18 @@ structure Piece where
 
 
 -- ------------------------------------------------------------
--- TYPE ALIASES
+-- POSITION TYPE
 -- ------------------------------------------------------------
--- `abbrev` (short for "abbreviation") creates a *transparent* alias.
--- "Transparent" means Lean treats `Pos n` as exactly the same type as
--- `Fin n × Fin n` everywhere — no conversion is needed.
---
 -- `Fin n` is the type of natural numbers that are *guaranteed* to be
 -- less than n (i.e., 0 through n−1). It carries a proof of the bound
 -- inside it, so out-of-range values literally cannot be constructed.
 --
--- `×` is the product (pair) type. `Fin n × Fin n` is a pair of such
--- numbers — one for the row, one for the column. Together they name
+-- `rank` and `file` each hold a `Fin n` value — together they name
 -- one of the n² squares on an n×n board.
-abbrev Pos (n : Nat) := Fin n × Fin n
+structure Pos (n : Nat) where
+  rank : Fin n
+  file : Fin n
+  deriving DecidableEq, Repr
 
 -- A `Board n` bundles two pieces of state for an n×n position:
 --   * `pieces`: a function from positions to occupants — `none` for empty,
@@ -112,7 +110,7 @@ instance {n : Nat} : CoeFun (Board n) (fun _ => Pos n → Option Piece) where
 -- This gives all n² squares in row-major order.
 def allPositions (n : Nat) : List (Pos n) :=
   (List.finRange n).flatMap fun r =>
-    (List.finRange n).map fun c => (r, c)
+    (List.finRange n).map fun c => ⟨r, c⟩
 
 
 -- ------------------------------------------------------------
@@ -180,8 +178,8 @@ instance {n : Nat} (a b x : Fin n) : Decidable (Between a b x) := by
 --     between their rows on that column.
 def ValidRookMove {n : Nat} (b : Board n) (src tgt : Pos n) : Prop :=
   src ≠ tgt ∧
-  ((src.1 = tgt.1 ∧ ∀ p : Pos n, p.1 = src.1 → Between src.2 tgt.2 p.2 → b p = none)
-   ∨ (src.2 = tgt.2 ∧ ∀ p : Pos n, p.2 = src.2 → Between src.1 tgt.1 p.1 → b p = none))
+  ((src.rank = tgt.rank ∧ ∀ p : Pos n, p.rank = src.rank → Between src.file tgt.file p.file → b p = none)
+   ∨ (src.file = tgt.file ∧ ∀ p : Pos n, p.file = src.file → Between src.rank tgt.rank p.rank → b p = none))
 
 instance {n : Nat} (b : Board n) (src tgt : Pos n) : Decidable (ValidRookMove b src tgt) := by
   unfold ValidRookMove; infer_instance
@@ -207,7 +205,7 @@ instance (a b : Nat) : Decidable (WithinOne a b) := by
 -- A king attacks all squares immediately adjacent to it — up to 8
 -- squares, one step in any direction (including diagonals).
 def ValidKingMove {n : Nat} (src tgt : Pos n) : Prop :=
-  src ≠ tgt ∧ WithinOne src.1.val tgt.1.val ∧ WithinOne src.2.val tgt.2.val
+  src ≠ tgt ∧ WithinOne src.rank.val tgt.rank.val ∧ WithinOne src.file.val tgt.file.val
 
 instance {n : Nat} (src tgt : Pos n) : Decidable (ValidKingMove src tgt) := by
   unfold ValidKingMove; infer_instance

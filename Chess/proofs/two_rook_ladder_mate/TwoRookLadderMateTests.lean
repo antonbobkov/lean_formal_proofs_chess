@@ -12,7 +12,7 @@ private def WR : Piece := ⟨.White, .Rook⟩
 private def BK : Piece := ⟨.Black, .King⟩
 
 -- Position shorthand for n=8 — `Fin 8` literals elaborate from numerals.
-private def sq8 (r c : Fin 8) : Pos 8 := (r, c)
+private def sq8 (r c : Fin 8) : Pos 8 := ⟨r, c⟩
 
 -- A board with White {K@(0,0), R_b@(0,1), R_a@(1,0)} and Black {K@(3,3)}.
 -- Phase = moveRb: about to move b-file rook up.

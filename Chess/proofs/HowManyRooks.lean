@@ -16,13 +16,13 @@ theorem nodup_fin_length_le {n : Nat} (xs : List (Fin n)) (h : xs.Nodup) :
 -- ============================================================
 -- PROOF: at most n non-attacking rooks on an n x n board
 -- ============================================================
-def nonAttackingRooks {n : Nat} (ps : List (Fin n × Fin n)) : Prop :=
-  ∀ p q, p ∈ ps → q ∈ ps → p ≠ q → p.1 ≠ q.1
+def nonAttackingRooks {n : Nat} (ps : List (Pos n)) : Prop :=
+  ∀ p q, p ∈ ps → q ∈ ps → p ≠ q → p.rank ≠ q.rank
 
 
-theorem row_nodup {n : Nat} {ps : List (Fin n × Fin n)}
+theorem row_nodup {n : Nat} {ps : List (Pos n)}
     (hna : nonAttackingRooks ps) (hnd : ps.Nodup) :
-    (ps.map (·.1)).Nodup := by
+    (ps.map (·.rank)).Nodup := by
   induction ps with
   | nil => simp
   | cons p rest ih =>
@@ -43,11 +43,11 @@ theorem row_nodup {n : Nat} {ps : List (Fin n × Fin n)}
       · exact hrest_nd
 
 
-theorem rooks_le {n : Nat} (ps : List (Fin n × Fin n))
+theorem rooks_le {n : Nat} (ps : List (Pos n))
     (hnd : ps.Nodup) (hna : nonAttackingRooks ps) :
     ps.length <= n := by
-  have h1 : (ps.map (·.1)).Nodup := row_nodup hna hnd
-  have h2 : (ps.map (·.1)).length <= n := nodup_fin_length_le _ h1
+  have h1 : (ps.map (·.rank)).Nodup := row_nodup hna hnd
+  have h2 : (ps.map (·.rank)).length <= n := nodup_fin_length_le _ h1
   rwa [List.length_map] at h2
 
 

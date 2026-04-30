@@ -23,7 +23,7 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
           p = rookBPos rank φ h ∨
           p = rookAPos rank φ h) ∧
     (∀ bp, board bp = some ⟨.Black, .King⟩ →
-           (rookAPos rank φ h).1 < bp.1 ∧ 2 ≤ bp.2.val) ∧
+           (rookAPos rank φ h).rank < bp.rank ∧ 2 ≤ bp.file.val) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
     IsLegalSetup board := by
   have hbnd := lsh.hRfits
@@ -34,7 +34,7 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
 
 lemma LadderShape_KingsApart {n : Nat} {board : Board n} {rank : Fin n}
   {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
-     (∀ bp, board bp = some ⟨.Black, .King⟩ → bp.2.val >= 2) := by sorry
+     (∀ bp, board bp = some ⟨.Black, .King⟩ → bp.file.val >= 2) := by sorry
 
 -- Re-expresses `applyMove`'s piece-lookup using `Eq` (Prop) rather than the
 -- `BEq`/`Bool` form in the definition, so that `if_pos`/`if_neg` and standard
@@ -58,9 +58,9 @@ lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
     (lsh : LadderShape board rank φ) :
     let move := nextWhiteMove lsh
     let b'   := applyMove board move.1 move.2
-    ∀ pw, b' pw = some ⟨.White, .King⟩ → pw.2.val = 0 := by
+    ∀ pw, b' pw = some ⟨.White, .King⟩ → pw.file.val = 0 := by
   show ∀ pw, (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2) pw
-              = some ⟨.White, .King⟩ → pw.2.val = 0
+              = some ⟨.White, .King⟩ → pw.file.val = 0
   intro pw hpw
   obtain ⟨_, hK_at, hRb_at, hRa_at, white_pos, _, _, _⟩ := lsh.unfold
   have hbnd := lsh.hRfits
@@ -68,7 +68,7 @@ lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
   -- Closes the `pw ≠ dst, pw ≠ src` branch uniformly: pw's piece is
   -- unchanged, so by white_pos pw is one of the three white squares, and
   -- only kingPos = (rank, 0) is consistent with pw being the king.
-  have unchanged_case : ∀ (h : board pw = some ⟨.White, .King⟩), pw.2.val = 0 := by
+  have unchanged_case : ∀ (h : board pw = some ⟨.White, .King⟩), pw.file.val = 0 := by
     intro hb
     rcases white_pos pw (.inl hb) with h | h | h
     · rw [h]; rfl
@@ -117,13 +117,13 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
     let b'   := applyMove board move.1 move.2
     ∀ pw pb : Pos n,
       (b' pw = some ⟨.White, .King⟩ ∧ b' pb = some ⟨.Black, .King⟩) →
-      pw.2.val + 2 ≤ pb.2.val := by
+      pw.file.val + 2 ≤ pb.file.val := by
   show ∀ pw pb : Pos n,
     ((applyMove board (nextWhiteMove ladder_shape).1
         (nextWhiteMove ladder_shape).2) pw = some ⟨.White, .King⟩ ∧
      (applyMove board (nextWhiteMove ladder_shape).1
         (nextWhiteMove ladder_shape).2) pb = some ⟨.Black, .King⟩) →
-    pw.2.val + 2 ≤ pb.2.val
+    pw.file.val + 2 ≤ pb.file.val
   intro pw pb ⟨hpw, hpb⟩
   obtain ⟨_, hK_at, hRb_at, hRa_at, _, black_loc, _, _⟩ := ladder_shape.unfold
   rw [applyMove_pieces] at hpb
@@ -146,8 +146,8 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
       by_cases h2 : pb = (nextWhiteMove ladder_shape).1
       · rw [if_pos h2] at hpb; simp at hpb
       · rw [if_neg h2] at hpb; exact hpb
-  have h_pw_col : pw.2.val = 0 := LadderMove_WhiteKingCol0 ladder_shape pw hpw
-  have h_pb_col : 2 ≤ pb.2.val := (black_loc pb hb_pb).2
+  have h_pw_col : pw.file.val = 0 := LadderMove_WhiteKingCol0 ladder_shape pw hpw
+  have h_pb_col : 2 ≤ pb.file.val := (black_loc pb hb_pb).2
   omega
 
 
@@ -157,7 +157,7 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
 -- inequalities rule out the white pieces (LadderShape's white_pos conjunct).
 lemma LadderShape.empty_at {n : Nat} {board : Board n} {rank : Fin n}
     {φ : LadderPhase} (lsh : LadderShape board rank φ) (p : Pos n)
-    (hcol : p.2.val < 2)
+    (hcol : p.file.val < 2)
     (hK  : p ≠ kingPos  rank   lsh.hRfits)
     (hRb : p ≠ rookBPos rank φ lsh.hRfits)
     (hRa : p ≠ rookAPos rank φ lsh.hRfits) :
@@ -198,8 +198,8 @@ lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
     -- (row or column); extracting both .1.val and .2.val and simp-reducing
     -- closes all 9 sub-cases uniformly.
     intro heq
-    have h1 := congrArg (fun x : Pos n => x.1.val) heq
-    have h2 := congrArg (fun x : Pos n => x.2.val) heq
+    have h1 := congrArg (fun x : Pos n => x.rank.val) heq
+    have h2 := congrArg (fun x : Pos n => x.file.val) heq
     cases φ <;>
       simp [nextWhiteMove, kingPos, rookBPos, rookAPos] at h1 h2
 
