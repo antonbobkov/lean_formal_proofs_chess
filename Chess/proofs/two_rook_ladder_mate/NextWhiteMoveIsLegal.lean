@@ -64,9 +64,23 @@ lemma LadderShape_BlackKingFile1_InCheck {n : Nat} {board : Board n}
     (bp : Pos n) (hbp : board bp = some ⟨.Black, .King⟩) (hfile : bp.file.val = 1) :
     IsCheck board .Black := by sorry
 
+-- The black king is at least two files from the white king. Files 0 and 1
+-- would each leave Black in check (via the file-N InCheck helpers), but
+-- IsLegalSetup says Black (the side not to move) is not in check.
 lemma LadderShape_KingsApart {n : Nat} {board : Board n} {rank : Fin n}
   {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
-     (∀ bp, board bp = some ⟨.Black, .King⟩ → bp.file.val >= 2) := by sorry
+     (∀ bp, board bp = some ⟨.Black, .King⟩ → bp.file.val >= 2) := by
+  intro bp hbp
+  obtain ⟨turn_white, _, _, _, _, _, _, _, _, h_no_check⟩ := ladder_shape.unfold
+  -- turn = White, so the side-not-to-move (in `IsLegalSetup`) is Black.
+  have h_black_no_check : ¬ IsCheck board .Black := by
+    rw [turn_white] at h_no_check; exact h_no_check
+  by_contra hge
+  rcases (show bp.file.val = 0 ∨ bp.file.val = 1 by omega) with h0 | h1
+  · exact h_black_no_check
+      (LadderShape_BlackKingFile0_InCheck ladder_shape bp hbp h0)
+  · exact h_black_no_check
+      (LadderShape_BlackKingFile1_InCheck ladder_shape bp hbp h1)
 
 -- Re-expresses `applyMove`'s piece-lookup using `Eq` (Prop) rather than the
 -- `BEq`/`Bool` form in the definition, so that `if_pos`/`if_neg` and standard
