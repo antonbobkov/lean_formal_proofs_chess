@@ -73,19 +73,17 @@ def rookAPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
 def LadderShape {n : Nat} (board : Board n) (rank : Fin n)
     (φ : LadderPhase) : Prop :=
   if space_left : rank.val + 2 < n then
+    let K  := kingPos  rank   space_left
+    let Rb := rookBPos rank φ space_left
+    let Ra := rookAPos rank φ space_left
     board.turn = .White ∧
-    board (kingPos rank space_left) = some ⟨.White, .King⟩ ∧
-    board (rookBPos rank φ space_left) =
-        some ⟨.White, .Rook⟩ ∧
-    board (rookAPos rank φ space_left) =
-        some ⟨.White, .Rook⟩ ∧
+    board K  = some ⟨.White, .King⟩ ∧
+    board Rb = some ⟨.White, .Rook⟩ ∧
+    board Ra = some ⟨.White, .Rook⟩ ∧
     (∀ p, (board p = some ⟨.White, .King⟩ ∨
            board p = some ⟨.White, .Rook⟩) →
-          p = kingPos rank space_left ∨
-          p = rookBPos rank φ space_left ∨
-          p = rookAPos rank φ space_left) ∧
-    (∀ bp, board bp = some ⟨.Black, .King⟩ →
-           (rookAPos rank φ space_left).rank < bp.rank) ∧
+          p = K ∨ p = Rb ∨ p = Ra) ∧
+    (∀ bp, board bp = some ⟨.Black, .King⟩ → Ra.rank < bp.rank) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
     IsLegalSetup board
   else False
