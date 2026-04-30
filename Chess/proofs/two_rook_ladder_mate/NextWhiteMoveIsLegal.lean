@@ -67,7 +67,24 @@ lemma LadderShape_NoWhiteAboveRb {n : Nat} {board : Board n} {rank : Fin n}
     {φ : LadderPhase} (lsh : LadderShape board rank φ) (p : Pos n)
     (hfile : p.file.val = 1)
     (habove : (rookBPos rank φ lsh.hRfits).rank.val < p.rank.val) :
-    ∀ k, board p ≠ some ⟨.White, k⟩ := by sorry
+    ∀ k, board p ≠ some ⟨.White, k⟩ := by
+  intro k hp
+  obtain ⟨_, _, _, _, white_pos, _, _, _⟩ := lsh.unfold
+  have hor : board p = some ⟨.White, .King⟩ ∨ board p = some ⟨.White, .Rook⟩ := by
+    cases k
+    · exact .inl hp
+    · exact .inr hp
+  rcases white_pos p hor with hK | hRb | hRa
+  · -- p = kingPos has file 0, contradicts hfile = 1.
+    have hpf : p.file.val = 0 := by rw [hK]; simp [kingPos]
+    omega
+  · -- p = rookBPos, but habove says p.rank > rookBPos.rank.
+    rw [hRb] at habove
+    omega
+  · -- p = rookAPos has file 0, contradicts hfile = 1.
+    have hpf : p.file.val = 0 := by
+      rw [hRa]; cases φ <;> simp [rookAPos]
+    omega
 
 -- A black king on file 0 would be in check from `rookAPos` (which sits on
 -- file 0 below the black king with an empty path between them).
