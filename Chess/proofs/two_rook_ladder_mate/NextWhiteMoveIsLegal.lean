@@ -133,7 +133,46 @@ lemma LadderShape_BlackKingFile0_InCheck {n : Nat} {board : Board n}
 lemma LadderShape_BlackKingFile1_InCheck {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
     (bp : Pos n) (hbp : board bp = some ⟨.Black, .King⟩) (hfile : bp.file.val = 1) :
-    IsCheck board .Black := by sorry
+    IsCheck board .Black := by
+  obtain ⟨_, _, hRb_at, _, _, black_loc, only_bk, _, ⟨bkW, _, hbk_uniq⟩, _⟩
+    := lsh.unfold
+  have h := lsh.hRfits
+  have hRa_rank_lt : (rookAPos rank φ h).rank.val < bp.rank.val := black_loc bp hbp
+  -- rookBPos.rank ≤ rookAPos.rank in every phase, hence < bp.rank.
+  have hRb_le_Ra : (rookBPos rank φ h).rank.val ≤ (rookAPos rank φ h).rank.val := by
+    cases φ <;> simp [rookBPos, rookAPos]
+  have hRb_rank_lt : (rookBPos rank φ h).rank.val < bp.rank.val := by omega
+  have hRb_file : (rookBPos rank φ h).file.val = 1 := by cases φ <;> simp [rookBPos]
+  refine ⟨bp, hbp, rookBPos rank φ h, .inl ⟨hRb_at, ?_⟩⟩
+  refine ⟨?_, .inr ⟨?_, ?_⟩⟩
+  · -- rookBPos ≠ bp (different ranks)
+    intro heq
+    have : (rookBPos rank φ h).rank.val = bp.rank.val := by rw [heq]
+    omega
+  · -- same file (as Fin n)
+    apply Fin.ext; omega
+  · -- no piece strictly between rookBPos and bp on file 1
+    intro q hqfile hbet
+    have hqf1 : q.file.val = 1 := by
+      have hq_eq_Rb : q.file.val = (rookBPos rank φ h).file.val := by rw [hqfile]
+      omega
+    have hq_rank_above : (rookBPos rank φ h).rank.val < q.rank.val := by
+      unfold Between at hbet; omega
+    have no_white := LadderShape_NoWhiteAboveRb lsh q hqf1 hq_rank_above
+    rcases hboard : board q with _ | ⟨c, kind⟩
+    · rfl
+    · exfalso
+      cases c with
+      | White => exact no_white kind hboard
+      | Black =>
+        have hk : kind = .King := only_bk q kind hboard
+        subst hk
+        have h_q_eq : q = bkW := hbk_uniq q hboard
+        have h_bp_eq : bp = bkW := hbk_uniq bp hbp
+        have hq_eq_bp : q = bp := h_q_eq.trans h_bp_eq.symm
+        rw [hq_eq_bp] at hbet
+        unfold Between at hbet
+        omega
 
 -- The black king is at least two files from the white king. Files 0 and 1
 -- would each leave Black in check (via the file-N InCheck helpers), but
