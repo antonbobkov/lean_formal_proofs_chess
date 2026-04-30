@@ -263,6 +263,23 @@ lemma LadderShape_WhitePiecesPreserved_moveK {n : Nat} {board : Board n}
 -- ------------------------------------------------------------
 -- PRESERVATION THEOREM (statement only)
 -- ------------------------------------------------------------
+-- KNOWN LIMITATION (moveK rank-bound):
+-- The conclusion uses `nextRank rank φ lsh.hRfits`, which on the moveK
+-- ply produces ⟨rank.val + 1, _⟩. `LadderShape` then requires
+-- (rank+1).val + 2 < n, i.e. rank.val + 3 < n — but `lsh.hRfits` only
+-- gives rank.val + 2 < n. So when φ = moveK and rank.val + 2 = n − 1
+-- (the final cycle before mate), the conclusion's bound fails and
+-- `LadderShape` reduces to `False`. The current statement is therefore
+-- unprovable as written for that boundary case.
+--
+-- Two ways to fix when we tackle this:
+--   (a) add a hypothesis `(φ = .moveK → rank.val + 3 < n)`, or
+--   (b) weaken the conclusion to `IsCheckmate _ .Black ∨ LadderShape …`.
+-- (b) is closer in spirit to `ladderMate_termination` and avoids
+-- threading an extra side-condition through every caller.
+-- This same subtlety is why the moveK helpers above had to spell out
+-- the post-step king square via `(nextWhiteMove lsh).2` instead of a
+-- `kingPos`-style expression.
 theorem LadderShape.preservation {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (lsh : LadderShape board rank φ)
