@@ -121,52 +121,21 @@ lemma EmptySquare_NotFriendly {n : Nat} (b : Board n) (dst : Pos n)
   rw [dst_empty] at h
   cases h
 
--- after applying nextWhiteMove, every black-occupied square is still a
--- black king. White moves cannot create new black pieces; they only
--- relocate white pieces and possibly overwrite the (empty) target.
-lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
-    {rank : Fin n} {φ : LadderPhase}
-    (ladder_shape : LadderShape board rank φ) :
-    let move := nextWhiteMove ladder_shape
-    let b'   := applyMove board move.1 move.2
-    ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by
-  show ∀ p k, (applyMove board (nextWhiteMove ladder_shape).1
-                (nextWhiteMove ladder_shape).2) p = some ⟨.Black, k⟩ → k = .King
+-- any move on a board where every black piece is a king preserves
+-- that property: the only piece relocated lands at `tgt`, and if it
+-- was black it was a king by hypothesis.
+lemma applyMove_PreservesOnlyBlackKing {n : Nat} (b : Board n) (src tgt : Pos n)
+    (only_bk : ∀ p k, b p = some ⟨.Black, k⟩ → k = .King) :
+    ∀ p k, (applyMove b src tgt) p = some ⟨.Black, k⟩ → k = .King := by
   intro p k hp
-  have hbnd : rank.val + 2 < n := ladder_shape.hRfits
-  have ls := ladder_shape
-  unfold LadderShape at ls
-  rw [dif_pos hbnd] at ls
-  obtain ⟨_, hK_at, hRb_at, hRa_at, _, _, only_bk, _⟩ := ls
-  have h_src_white : ∃ wk,
-      board (nextWhiteMove ladder_shape).1 = some ⟨.White, wk⟩ := by
-    cases φ
-    · exact ⟨.Rook, hRb_at⟩
-    · exact ⟨.Rook, hRa_at⟩
-    · exact ⟨.King, hK_at⟩
-  have hp_eq : (applyMove board (nextWhiteMove ladder_shape).1
-                (nextWhiteMove ladder_shape).2).pieces p
-             = if p = (nextWhiteMove ladder_shape).2 then
-                  board (nextWhiteMove ladder_shape).1
-               else if p = (nextWhiteMove ladder_shape).1 then
-                  none
-               else board p := by
-    unfold applyMove
-    by_cases h1 : p = (nextWhiteMove ladder_shape).2
-    · simp [h1]
-    · by_cases h2 : p = (nextWhiteMove ladder_shape).1
-      · simp [h2]
-      · simp [h1, h2]
-  have hp' : (applyMove board (nextWhiteMove ladder_shape).1
-              (nextWhiteMove ladder_shape).2).pieces p = some ⟨.Black, k⟩ := hp
-  rw [hp_eq] at hp'
-  by_cases h1 : p = (nextWhiteMove ladder_shape).2
-  · rw [if_pos h1] at hp'
-    obtain ⟨_, hk⟩ := h_src_white
-    rw [hk] at hp'
-    simp at hp'
-  · rw [if_neg h1] at hp'
-    by_cases h2 : p = (nextWhiteMove ladder_shape).1
-    · rw [if_pos h2] at hp'; simp at hp'
-    · rw [if_neg h2] at hp'
+  have hp' : (applyMove b src tgt).pieces p = some ⟨.Black, k⟩ := hp
+  unfold applyMove at hp'
+  by_cases h1 : p = tgt
+  · simp [h1] at hp'
+    exact only_bk src k hp'
+  · by_cases h2 : p = src
+    · simp [h2] at hp'
+      exact only_bk src k hp'.2
+    · simp [h1, h2] at hp'
       exact only_bk p k hp'
+

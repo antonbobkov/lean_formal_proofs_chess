@@ -205,6 +205,21 @@ lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
 
 
 
+-- after applying nextWhiteMove, every black-occupied square is still a
+-- black king. Specialisation of `applyMove_PreservesOnlyBlackKing` to the
+-- ladder move; the only-black-king clause is part of `LadderShape`.
+lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (ladder_shape : LadderShape board rank φ) :
+    let move := nextWhiteMove ladder_shape
+    let b'   := applyMove board move.1 move.2
+    ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by
+  show ∀ p k, (applyMove board (nextWhiteMove ladder_shape).1
+                (nextWhiteMove ladder_shape).2) p = some ⟨.Black, k⟩ → k = .King
+  obtain ⟨_, _, _, _, _, _, only_bk, _⟩ := ladder_shape.unfold
+  exact applyMove_PreservesOnlyBlackKing board _ _ only_bk
+
+
 -- Phase-agnostic finisher: given the `LadderShape` invariant plus a
 -- specific piece at the move's src and a valid move for that piece,
 -- conclude `IsLegalMove`. All four conjuncts of `IsLegalMove` are
