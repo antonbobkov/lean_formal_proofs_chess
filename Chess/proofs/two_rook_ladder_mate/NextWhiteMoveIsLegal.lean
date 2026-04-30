@@ -47,7 +47,7 @@ private lemma applyMove_pieces {n : Nat} (b : Board n) (src dst p : Pos n) :
   by_cases h1 : p = dst
   · simp [h1]
   · by_cases h2 : p = src
-    · simp [h1, h2]
+    · simp [h2]
     · simp [h1, h2]
 
 -- After applying nextWhiteMove, the white king sits on column 0. In
