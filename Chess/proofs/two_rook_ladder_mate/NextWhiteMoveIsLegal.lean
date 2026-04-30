@@ -40,7 +40,26 @@ lemma LadderShape_NoWhiteAboveRa {n : Nat} {board : Board n} {rank : Fin n}
     {φ : LadderPhase} (lsh : LadderShape board rank φ) (p : Pos n)
     (hfile : p.file.val = 0)
     (habove : (rookAPos rank φ lsh.hRfits).rank.val < p.rank.val) :
-    ∀ k, board p ≠ some ⟨.White, k⟩ := by sorry
+    ∀ k, board p ≠ some ⟨.White, k⟩ := by
+  intro k hp
+  obtain ⟨_, _, _, _, white_pos, _, _, _⟩ := lsh.unfold
+  have hor : board p = some ⟨.White, .King⟩ ∨ board p = some ⟨.White, .Rook⟩ := by
+    cases k
+    · exact .inl hp
+    · exact .inr hp
+  rcases white_pos p hor with hK | hRb | hRa
+  · -- p = kingPos = (rank, 0); but habove forces p.rank.val > rookAPos.rank.val ≥ rank.val + 1.
+    have hpr : p.rank.val = rank.val := by rw [hK]; simp [kingPos]
+    have hRa_rank : rank.val + 1 ≤ (rookAPos rank φ lsh.hRfits).rank.val := by
+      cases φ <;> simp [rookAPos]
+    omega
+  · -- p = rookBPos, which has file 1; contradicts hfile = 0.
+    have hpf : p.file.val = 1 := by
+      rw [hRb]; cases φ <;> simp [rookBPos]
+    omega
+  · -- p = rookAPos, but habove says p.rank > rookAPos.rank.
+    rw [hRa] at habove
+    omega
 
 -- No white piece sits strictly above `rookBPos` on its file (file 1).
 -- Same shape as `LadderShape_NoWhiteAboveRa`.
