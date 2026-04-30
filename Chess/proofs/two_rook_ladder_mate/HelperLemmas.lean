@@ -18,8 +18,7 @@ lemma RookUpEmpty_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
     omega
 
 -- king analogue of RookUpEmpty_IsValid: a king step up by one rank
--- in the same file is a ValidKingMove (no emptiness needed — kings
--- don't slide).
+-- in the same file is a ValidKingMove
 lemma KingUp_IsValid {n : Nat} (src tgt : Pos n)
     (same_col : src.file = tgt.file)
     (tgt_close : src.rank.val + 1 = tgt.rank.val) :
@@ -76,4 +75,44 @@ lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
     (ladder_shape : LadderShape board rank φ) :
     let move := nextWhiteMove ladder_shape
     let b'   := applyMove board move.1 move.2
-    ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by sorry
+    ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by
+  show ∀ p k, (applyMove board (nextWhiteMove ladder_shape).1
+                (nextWhiteMove ladder_shape).2) p = some ⟨.Black, k⟩ → k = .King
+  intro p k hp
+  have hbnd : rank.val + 2 < n := ladder_shape.hRfits
+  have ls := ladder_shape
+  unfold LadderShape at ls
+  rw [dif_pos hbnd] at ls
+  obtain ⟨_, hK_at, hRb_at, hRa_at, _, _, only_bk, _⟩ := ls
+  have h_src_white : ∃ wk,
+      board (nextWhiteMove ladder_shape).1 = some ⟨.White, wk⟩ := by
+    cases φ
+    · exact ⟨.Rook, hRb_at⟩
+    · exact ⟨.Rook, hRa_at⟩
+    · exact ⟨.King, hK_at⟩
+  have hp_eq : (applyMove board (nextWhiteMove ladder_shape).1
+                (nextWhiteMove ladder_shape).2).pieces p
+             = if p = (nextWhiteMove ladder_shape).2 then
+                  board (nextWhiteMove ladder_shape).1
+               else if p = (nextWhiteMove ladder_shape).1 then
+                  none
+               else board p := by
+    unfold applyMove
+    by_cases h1 : p = (nextWhiteMove ladder_shape).2
+    · simp [h1]
+    · by_cases h2 : p = (nextWhiteMove ladder_shape).1
+      · simp [h2]
+      · simp [h1, h2]
+  have hp' : (applyMove board (nextWhiteMove ladder_shape).1
+              (nextWhiteMove ladder_shape).2).pieces p = some ⟨.Black, k⟩ := hp
+  rw [hp_eq] at hp'
+  by_cases h1 : p = (nextWhiteMove ladder_shape).2
+  · rw [if_pos h1] at hp'
+    obtain ⟨_, hk⟩ := h_src_white
+    rw [hk] at hp'
+    simp at hp'
+  · rw [if_neg h1] at hp'
+    by_cases h2 : p = (nextWhiteMove ladder_shape).1
+    · rw [if_pos h2] at hp'; simp at hp'
+    · rw [if_neg h2] at hp'
+      exact only_bk p k hp'
