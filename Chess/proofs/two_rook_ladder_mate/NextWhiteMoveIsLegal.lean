@@ -17,8 +17,7 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
     board (kingPos rank h) = some ⟨.White, .King⟩ ∧
     board (rookBPos rank φ h) = some ⟨.White, .Rook⟩ ∧
     board (rookAPos rank φ h) = some ⟨.White, .Rook⟩ ∧
-    (∀ p, (board p = some ⟨.White, .King⟩ ∨
-           board p = some ⟨.White, .Rook⟩) →
+    (∀ p, (∃ k, board p = some ⟨.White, k⟩) →
           p = kingPos rank h ∨
           p = rookBPos rank φ h ∨
           p = rookAPos rank φ h) ∧
@@ -43,11 +42,7 @@ lemma LadderShape_NoWhiteAboveRa {n : Nat} {board : Board n} {rank : Fin n}
     ∀ k, board p ≠ some ⟨.White, k⟩ := by
   intro k hp
   obtain ⟨_, _, _, _, white_pos, _, _, _⟩ := lsh.unfold
-  have hor : board p = some ⟨.White, .King⟩ ∨ board p = some ⟨.White, .Rook⟩ := by
-    cases k
-    · exact .inl hp
-    · exact .inr hp
-  rcases white_pos p hor with hK | hRb | hRa
+  rcases white_pos p ⟨k, hp⟩ with hK | hRb | hRa
   · -- p = kingPos = (rank, 0); but habove forces p.rank.val > rookAPos.rank.val ≥ rank.val + 1.
     have hpr : p.rank.val = rank.val := by rw [hK]; simp [kingPos]
     have hRa_rank : rank.val + 1 ≤ (rookAPos rank φ lsh.hRfits).rank.val := by
@@ -70,11 +65,7 @@ lemma LadderShape_NoWhiteAboveRb {n : Nat} {board : Board n} {rank : Fin n}
     ∀ k, board p ≠ some ⟨.White, k⟩ := by
   intro k hp
   obtain ⟨_, _, _, _, white_pos, _, _, _⟩ := lsh.unfold
-  have hor : board p = some ⟨.White, .King⟩ ∨ board p = some ⟨.White, .Rook⟩ := by
-    cases k
-    · exact .inl hp
-    · exact .inr hp
-  rcases white_pos p hor with hK | hRb | hRa
+  rcases white_pos p ⟨k, hp⟩ with hK | hRb | hRa
   · -- p = kingPos has file 0, contradicts hfile = 1.
     have hpf : p.file.val = 0 := by rw [hK]; simp [kingPos]
     omega
@@ -211,7 +202,7 @@ lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
   -- only kingPos = (rank, 0) is consistent with pw being the king.
   have unchanged_case : ∀ (h : board pw = some ⟨.White, .King⟩), pw.file.val = 0 := by
     intro hb
-    rcases white_pos pw (.inl hb) with h | h | h
+    rcases white_pos pw ⟨.King, hb⟩ with h | h | h
     · rw [h]; rfl
     · rw [h, hRb_at] at hb; simp at hb
     · rw [h, hRa_at] at hb; simp at hb
@@ -315,12 +306,7 @@ lemma LadderShape.empty_at {n : Nat} {board : Board n} {rank : Fin n}
       have := black_col p hb
       omega
     | White =>
-      have hor : board p = some ⟨.White, .King⟩ ∨
-                 board p = some ⟨.White, .Rook⟩ := by
-        cases k
-        · exact .inl hb
-        · exact .inr hb
-      rcases white_pos p hor with h | h | h
+      rcases white_pos p ⟨k, hb⟩ with h | h | h
       · exact hK  h
       · exact hRb h
       · exact hRa h

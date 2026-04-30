@@ -80,8 +80,7 @@ def LadderShape {n : Nat} (board : Board n) (rank : Fin n)
     board K  = some ⟨.White, .King⟩ ∧
     board Rb = some ⟨.White, .Rook⟩ ∧
     board Ra = some ⟨.White, .Rook⟩ ∧
-    (∀ p, (board p = some ⟨.White, .King⟩ ∨
-           board p = some ⟨.White, .Rook⟩) →
+    (∀ p, (∃ k, board p = some ⟨.White, k⟩) →
           p = K ∨ p = Rb ∨ p = Ra) ∧
     (∀ bp, board bp = some ⟨.Black, .King⟩ → Ra.rank < bp.rank) ∧
     (∀ p k, board p = some ⟨.Black, k⟩ → k = .King) ∧
