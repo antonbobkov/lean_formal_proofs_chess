@@ -1,5 +1,7 @@
 import ChessRules
 import FunctionDefinition
+import Mathlib.Data.Finset.Card
+import Mathlib.Data.Fintype.Prod
 
 -- moving rook into a square one rank up in the same file is a ValidRookMove
 lemma RookUp_IsValid {n : Nat} (b : Board n) (src tgt : Pos n)
@@ -154,4 +156,117 @@ lemma applyMove_PreservesOnlyBlackKing {n : Nat} (b : Board n) (src tgt : Pos n)
       exact only_bk src k hp'.2
     · simp [h1, h2] at hp'
       exact only_bk p k hp'
+
+
+-- ============================================================
+-- COLOR-PIECE COUNTING (helpers for `LadderShape` invariant Q)
+-- ============================================================
+-- The conjunct
+--   Q : ∀ p, (∃ k, board p = some ⟨.White, k⟩) → p = K ∨ p = Rb ∨ p = Ra
+-- in `LadderShape` is preserved across one White ply + one legal Black
+-- reply. Rather than a direct case-analysis tying every sub-fact to the
+-- ladder's three named squares, we factor through a counting argument
+-- that splits cleanly into reusable, board-level pieces. The lemmas
+-- below are color-agnostic (parameterised by `(c : Color)`) so the
+-- same machinery is available for future setups that track black-
+-- piece confinement instead.
+--
+--   (a) Any non-capturing move preserves the *number* of squares
+--       occupied by pieces of color `c`. This is a generic fact
+--       about boards, independent of any specific named squares.
+--       It splits into two sub-cases:
+--         · Friendly ply (a `c`-piece relocates onto an empty square):
+--           one element leaves `colorSquares`, one element enters,
+--           card unchanged.
+--         · Opponent ply (a `c.opponent`-piece relocates onto an
+--           empty square): `colorSquares b c` is *literally identical*
+--           before and after — no `c`-piece is touched at all.
+--
+--   (b) The three named squares each carry a `c`-piece in the
+--       post-move board. The per-phase `LadderStep_PiecesAt_*`
+--       lemmas (plus `whitePiecePreserved` for the black ply)
+--       already give us this for the white case.
+--
+--   (c) The three named squares are pairwise distinct. Purely
+--       combinatorial; for the ladder, this drops out of the
+--       rank/file definitions in `FunctionDefinition.lean`.
+--
+-- Putting them together: from Q on the original board we get
+-- `(colorSquares b c).card ≤ 3`; (a) propagates the bound to the
+-- new board; (b)+(c) provide a 3-element subset of
+-- `colorSquares b' c`; `Finset.eq_of_subset_of_card_le` then
+-- collapses inequality to equality, which is exactly Q for the
+-- new board.
+--
+-- Why `≤ 3` and not `= 3`?
+--   The natural fact derived from Q is "subset of a 3-element set",
+--   i.e., `card ≤ 3` — no distinctness needed at this stage. It is
+--   also exactly the input shape `Finset.eq_of_subset_of_card_le`
+--   wants. Using `= 3` would force us to prove the lower bound (≥ 3,
+--   needing the three positions distinct) twice: once to seed the
+--   invariant and once at every preservation step. With `≤ 3` we
+--   carry one half of the count and only invoke distinctness at the
+--   final collapse step (`Q_of_subset_card_le` below).
+
+instance Pos.fintype {n : Nat} : Fintype (Pos n) :=
+  Fintype.ofEquiv (Fin n × Fin n)
+    { toFun := fun ⟨r, f⟩ => ⟨r, f⟩
+      invFun := fun p => (p.rank, p.file)
+      left_inv := fun _ => rfl
+      right_inv := fun _ => rfl }
+
+/-- The set of squares carrying a piece of color `c`. -/
+def colorSquares {n : Nat} (b : Board n) (c : Color) : Finset (Pos n) :=
+  Finset.univ.filter (fun p => ∃ k, b p = some ⟨c, k⟩)
+
+-- Step A: from "c-pieces are confined to {p1, p2, p3}" we get a
+-- card bound. No distinctness needed: even if some of the three
+-- coincide, the card of the image is ≤ 3.
+lemma colorSquares_card_le_three_of_Q {n : Nat} (b : Board n) (c : Color)
+    {p1 p2 p3 : Pos n}
+    (hQ : ∀ p, (∃ k, b p = some ⟨c, k⟩) →
+          p = p1 ∨ p = p2 ∨ p = p3) :
+    (colorSquares b c).card ≤ 3 := by
+  sorry
+
+-- Step B (friendly ply): a non-capturing move that relocates a piece
+-- of color `c` to an empty square preserves the count of `c`-squares.
+-- Generic — does not mention any specific named squares. The premises
+-- are what the ladder gives us for white plies: src has a `c`-piece
+-- (from the invariant), dst is empty (from `LadderMove_IntoEmptySquare`).
+lemma colorSquares_card_eq_friendlyNonCapture {n : Nat} (b : Board n) (c : Color)
+    (src dst : Pos n)
+    (h_src : ∃ k, b src = some ⟨c, k⟩)
+    (h_dst_empty : b dst = none) :
+    (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card := by
+  sorry
+
+-- Step B (opponent ply): a non-capturing move whose source carries a
+-- `c.opponent`-piece leaves `colorSquares _ c` literally unchanged.
+-- Strictly stronger than the friendly-ply lemma (no card needed)
+-- because pieces of the opposite color cannot enter or leave
+-- `colorSquares _ c`. The `h_dst_empty` premise is the "non-capturing"
+-- assumption (currently `sorry`'d in `LadderShape.preservation` as
+-- `bdst_empty`).
+lemma colorSquares_eq_opponentNonCapture {n : Nat} (b : Board n) (c : Color)
+    (src dst : Pos n)
+    (h_src : ∃ k, b src = some ⟨c.opponent, k⟩)
+    (h_dst_empty : b dst = none) :
+    colorSquares (applyMove b src dst) c = colorSquares b c := by
+  sorry
+
+-- Step C: closing lemma. Given three pairwise distinct positions
+-- carrying `c`-pieces, plus the `≤ 3` count bound (from steps A/B),
+-- we recover Q via `Finset.eq_of_subset_of_card_le`. The piece type
+-- at each position is left existential — only color matters here.
+lemma Q_of_subset_card_le {n : Nat} (b : Board n) (c : Color)
+    {p1 p2 p3 : Pos n}
+    (h1 : ∃ k, b p1 = some ⟨c, k⟩)
+    (h2 : ∃ k, b p2 = some ⟨c, k⟩)
+    (h3 : ∃ k, b p3 = some ⟨c, k⟩)
+    (h_12 : p1 ≠ p2) (h_13 : p1 ≠ p3) (h_23 : p2 ≠ p3)
+    (h_card : (colorSquares b c).card ≤ 3) :
+    ∀ p, (∃ k, b p = some ⟨c, k⟩) →
+         p = p1 ∨ p = p2 ∨ p = p3 := by
+  sorry
 
