@@ -227,7 +227,19 @@ lemma colorSquares_card_le_three_of_Q {n : Nat} (b : Board n) (c : Color)
     (hQ : ∀ p, (∃ k, b p = some ⟨c, k⟩) →
           p = p1 ∨ p = p2 ∨ p = p3) :
     (colorSquares b c).card ≤ 3 := by
-  sorry
+  have h_sub : colorSquares b c ⊆ ({p1, p2, p3} : Finset (Pos n)) := by
+    intro p hp
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and] at hp
+    have := hQ p hp
+    simp only [Finset.mem_insert, Finset.mem_singleton]
+    exact this
+  calc (colorSquares b c).card
+      ≤ ({p1, p2, p3} : Finset (Pos n)).card := Finset.card_le_card h_sub
+    _ ≤ 3 := by
+        refine (Finset.card_insert_le _ _).trans ?_
+        refine Nat.add_le_add_right ?_ 1
+        refine (Finset.card_insert_le _ _).trans ?_
+        simp [Finset.card_singleton]
 
 -- Step B (friendly ply): a non-capturing move that relocates a piece
 -- of color `c` to an empty square preserves the count of `c`-squares.
