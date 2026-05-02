@@ -78,13 +78,6 @@ lemma LadderStep_PiecesAt_moveRb {n : Nat} {board : Board n} {rank : Fin n}
     b' (rookAPos rank .moveRa h) = some ⟨.White, .Rook⟩ := by
   obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
   have dst_empty := LadderMove_IntoEmptySquare lsh
-  show
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (kingPos rank lsh.hRfits) = some ⟨.White, .King⟩ ∧
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (rookBPos rank .moveRa lsh.hRfits) = some ⟨.White, .Rook⟩ ∧
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (rookAPos rank .moveRa lsh.hRfits) = some ⟨.White, .Rook⟩
   have h_src_eq : (nextWhiteMove lsh).1 = rookBPos rank .moveRb lsh.hRfits := rfl
   refine ⟨?_, ?_, ?_⟩
   · -- King unchanged at (rank, 0)
@@ -112,13 +105,6 @@ lemma LadderStep_PiecesAt_moveRa {n : Nat} {board : Board n} {rank : Fin n}
     b' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
   obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
   have dst_empty := LadderMove_IntoEmptySquare lsh
-  show
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (kingPos rank lsh.hRfits) = some ⟨.White, .King⟩ ∧
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (rookBPos rank .moveK lsh.hRfits) = some ⟨.White, .Rook⟩ ∧
-    (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2)
-      (rookAPos rank .moveK lsh.hRfits) = some ⟨.White, .Rook⟩
   have h_src_eq : (nextWhiteMove lsh).1 = rookAPos rank .moveRa lsh.hRfits := rfl
   refine ⟨?_, ?_, ?_⟩
   · -- King unchanged at (rank, 0)
