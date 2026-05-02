@@ -265,7 +265,39 @@ lemma colorSquares_eq_opponentNonCapture {n : Nat} (b : Board n) (c : Color)
     (h_src : ∃ k, b src = some ⟨c.opponent, k⟩)
     (h_dst_empty : b dst = none) :
     colorSquares (applyMove b src dst) c = colorSquares b c := by
-  sorry
+  obtain ⟨k_opp, h_src_at⟩ := h_src
+  have h_color_ne : c.opponent ≠ c := by cases c <;> decide
+  have h_src_not_c : ∀ k, b src ≠ some ⟨c, k⟩ := fun k h => by
+    rw [h_src_at] at h
+    exact h_color_ne (congrArg Piece.color (Option.some.inj h))
+  have h_dst_not_c : ∀ k, b dst ≠ some ⟨c, k⟩ := fun k h => by
+    rw [h_dst_empty] at h; cases h
+  have apply_eq : ∀ p, (applyMove b src dst).pieces p =
+      if p = dst then b src else if p = src then none else b p := by
+    intro p
+    unfold applyMove
+    by_cases h1 : p = dst
+    · simp [h1]
+    · by_cases h2 : p = src
+      · simp [h2]
+      · simp [h1, h2]
+  ext p
+  simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+  show (∃ k, (applyMove b src dst).pieces p = some ⟨c, k⟩) ↔
+       (∃ k, b p = some ⟨c, k⟩)
+  rw [apply_eq p]
+  by_cases h1 : p = dst
+  · subst h1
+    rw [if_pos rfl]
+    exact ⟨fun ⟨k, hk⟩ => (h_src_not_c k hk).elim,
+           fun ⟨k, hk⟩ => (h_dst_not_c k hk).elim⟩
+  · rw [if_neg h1]
+    by_cases h2 : p = src
+    · subst h2
+      rw [if_pos rfl]
+      refine ⟨fun ⟨_, hk⟩ => ?_, fun ⟨k, hk⟩ => (h_src_not_c k hk).elim⟩
+      cases hk
+    · rw [if_neg h2]
 
 -- Step C: closing lemma. Given three pairwise distinct positions
 -- carrying `c`-pieces, plus the `≤ 3` count bound (from steps A/B),
