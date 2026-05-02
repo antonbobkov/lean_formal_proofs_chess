@@ -2,6 +2,7 @@ import ChessRules
 import FunctionDefinition
 import HelperLemmas
 import NextWhiteMoveIsLegal
+import Mathlib.Data.Finset.Card
 
 -- ============================================================
 -- LADDER SHAPE PRESERVATION
@@ -201,6 +202,78 @@ private lemma whitePiecePreserved {n : Nat} {board : Board n}
   cases this
 
 -- ------------------------------------------------------------
+-- HELPERS FOR Q PRESERVATION (white pieces confined to K, Rb, Ra)
+-- ------------------------------------------------------------
+-- The Q conjunct of `LadderShape` says the only white-occupied
+-- squares are the three named ladder squares. After one White ply
+-- + one legal Black reply (with bdst empty), Q on the input board
+-- transports to Q on the output board via the counting machinery
+-- in `HelperLemmas`:
+--
+--   (1) `colorSquares_card_le_three_of_Q` turns input Q into
+--       a `card ≤ 3` bound on white squares.
+--   (2) Two applications of `colorSquares_card_eq_opponentNonCapture`
+--       carry that bound through the white ply (target empty by
+--       `LadderMove_IntoEmptySquare`) and the black ply (target
+--       empty by hypothesis).
+--   (3) `Q_of_subset_card_le` collapses the bound back to Q on the
+--       output board, given the three named squares each carry a
+--       white piece (from `LadderStep_PiecesAt_*` + `whitePiecePreserved`)
+--       and are pairwise distinct (the three lemmas just below).
+
+-- The three named ladder squares (kingPos, rookBPos, rookAPos) are
+-- pairwise distinct for every phase. Each pair separates either by
+-- file or by rank; the value table in `FunctionDefinition.lean`
+-- shows the gap explicitly.
+private lemma kingPos_ne_rookBPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (h : rank.val + 2 < n) :
+    kingPos rank h ≠ rookBPos rank φ h := by
+  intro heq
+  have := congrArg (fun p : Pos n => p.file.val) heq
+  cases φ <;> simp [kingPos, rookBPos] at this
+
+private lemma kingPos_ne_rookAPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (h : rank.val + 2 < n) :
+    kingPos rank h ≠ rookAPos rank φ h := by
+  intro heq
+  have := congrArg (fun p : Pos n => p.rank.val) heq
+  cases φ <;> simp [kingPos, rookAPos] at this
+
+private lemma rookBPos_ne_rookAPos {n : Nat} (rank : Fin n) (φ : LadderPhase)
+    (h : rank.val + 2 < n) :
+    rookBPos rank φ h ≠ rookAPos rank φ h := by
+  intro heq
+  have := congrArg (fun p : Pos n => p.file.val) heq
+  cases φ <;> simp [rookBPos, rookAPos] at this
+
+-- Across one full White+Black cycle the count of white-occupied
+-- squares is unchanged: the white ply targets an empty square
+-- (`LadderMove_IntoEmptySquare`) and the black ply also targets an
+-- empty square (`bdst_empty`), so neither move drops a piece on top
+-- of an existing white-occupied square. Combined with the input Q,
+-- this gives the `≤ 3` bound on the output board's white squares.
+private lemma whiteCount_le_three_after_cycle {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (lsh : LadderShape board rank φ) {bsrc bdst : Pos n}
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    (colorSquares (applyMove (ladderStep lsh) bsrc bdst) .White).card ≤ 3 := by
+  obtain ⟨_, _, _, _, hQ, _, _, _⟩ := lsh.unfold
+  have h_init : (colorSquares board .White).card ≤ 3 :=
+    colorSquares_card_le_three_of_Q board .White hQ
+  have h_white_ply : (colorSquares (ladderStep lsh) .White).card =
+      (colorSquares board .White).card :=
+    colorSquares_card_eq_opponentNonCapture board .White
+      (nextWhiteMove lsh).1 (nextWhiteMove lsh).2
+      (LadderMove_IntoEmptySquare lsh)
+  have h_black_ply :
+      (colorSquares (applyMove (ladderStep lsh) bsrc bdst) .White).card =
+      (colorSquares (ladderStep lsh) .White).card :=
+    colorSquares_card_eq_opponentNonCapture (ladderStep lsh) .White
+      bsrc bdst bdst_empty
+  omega
+
+
+-- ------------------------------------------------------------
 -- PRESERVATION THEOREM
 -- ------------------------------------------------------------
 -- The `hMoveK` hypothesis supplies the next-rank bound when φ = moveK:
@@ -228,28 +301,39 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
   -- future work. Until then, white-piece preservation borrows it as
   -- an assumption.
   have bdst_empty : (ladderStep lsh) bdst = none := sorry
+  have h_card := whiteCount_le_three_after_cycle (bsrc := bsrc) lsh bdst_empty
   cases φ with
   | moveRb =>
     obtain ⟨hK, hRb, hRa⟩ := LadderStep_PiecesAt_moveRb lsh
     have hK'  := whitePiecePreserved hK  rfl hbsrc bdst_empty
     have hRb' := whitePiecePreserved hRb rfl hbsrc bdst_empty
     have hRa' := whitePiecePreserved hRa rfl hbsrc bdst_empty
+    have hQ' := Q_of_subset_card_le _ .White
+      ⟨.King, hK'⟩ ⟨.Rook, hRb'⟩ ⟨.Rook, hRa'⟩
+      (kingPos_ne_rookBPos rank .moveRa lsh.hRfits)
+      (kingPos_ne_rookAPos rank .moveRa lsh.hRfits)
+      (rookBPos_ne_rookAPos rank .moveRa lsh.hRfits)
+      h_card
     show LadderShape (applyMove (ladderStep lsh) bsrc bdst) rank .moveRa
     unfold LadderShape
     rw [dif_pos lsh.hRfits]
-    refine ⟨h_turn, hK', hRb', hRa', ?_, ?_, h_only_bk, h_legal⟩
-    · sorry  -- white pieces only at K, Rb, Ra
+    refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
     · sorry  -- black king's rank is strictly above rookA
   | moveRa =>
     obtain ⟨hK, hRb, hRa⟩ := LadderStep_PiecesAt_moveRa lsh
     have hK'  := whitePiecePreserved hK  rfl hbsrc bdst_empty
     have hRb' := whitePiecePreserved hRb rfl hbsrc bdst_empty
     have hRa' := whitePiecePreserved hRa rfl hbsrc bdst_empty
+    have hQ' := Q_of_subset_card_le _ .White
+      ⟨.King, hK'⟩ ⟨.Rook, hRb'⟩ ⟨.Rook, hRa'⟩
+      (kingPos_ne_rookBPos rank .moveK lsh.hRfits)
+      (kingPos_ne_rookAPos rank .moveK lsh.hRfits)
+      (rookBPos_ne_rookAPos rank .moveK lsh.hRfits)
+      h_card
     show LadderShape (applyMove (ladderStep lsh) bsrc bdst) rank .moveK
     unfold LadderShape
     rw [dif_pos lsh.hRfits]
-    refine ⟨h_turn, hK', hRb', hRa', ?_, ?_, h_only_bk, h_legal⟩
-    · sorry  -- white pieces only at K, Rb, Ra
+    refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
     · sorry  -- black king's rank is strictly above rookA
   | moveK =>
     have hRoom := hMoveK rfl
@@ -257,13 +341,18 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
     have hK'  := whitePiecePreserved hK  rfl hbsrc bdst_empty
     have hRb' := whitePiecePreserved hRb rfl hbsrc bdst_empty
     have hRa' := whitePiecePreserved hRa rfl hbsrc bdst_empty
-    show LadderShape (applyMove (ladderStep lsh) bsrc bdst)
-        ⟨rank.val + 1, by omega⟩ .moveRb
+    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
+    have h' : rank'.val + 2 < n := hRoom
+    have hQ' := Q_of_subset_card_le _ .White
+      ⟨.King, hK'⟩ ⟨.Rook, hRb'⟩ ⟨.Rook, hRa'⟩
+      (kingPos_ne_rookBPos rank' .moveRb h')
+      (kingPos_ne_rookAPos rank' .moveRb h')
+      (rookBPos_ne_rookAPos rank' .moveRb h')
+      h_card
+    show LadderShape (applyMove (ladderStep lsh) bsrc bdst) rank' .moveRb
     unfold LadderShape
-    rw [dif_pos (show (⟨rank.val + 1, by omega⟩ : Fin n).val + 2 < n by
-                    show rank.val + 1 + 2 < n; omega)]
-    refine ⟨h_turn, hK', hRb', hRa', ?_, ?_, h_only_bk, h_legal⟩
-    · sorry  -- white pieces only at K, Rb, Ra
+    rw [dif_pos h']
+    refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
     · sorry  -- black king's rank is strictly above rookA
 
 
