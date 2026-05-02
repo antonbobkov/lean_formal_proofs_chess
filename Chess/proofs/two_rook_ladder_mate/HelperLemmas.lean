@@ -251,7 +251,58 @@ lemma colorSquares_card_eq_friendlyNonCapture {n : Nat} (b : Board n) (c : Color
     (h_src : ∃ k, b src = some ⟨c, k⟩)
     (h_dst_empty : b dst = none) :
     (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card := by
-  sorry
+  obtain ⟨k_src, h_src_at⟩ := h_src
+  have h_src_in : src ∈ colorSquares b c := by
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+    exact ⟨k_src, h_src_at⟩
+  have h_dst_notin : dst ∉ colorSquares b c := by
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+    rintro ⟨k, hk⟩
+    rw [h_dst_empty] at hk; cases hk
+  have apply_eq : ∀ p, (applyMove b src dst).pieces p =
+      if p = dst then b src else if p = src then none else b p := by
+    intro p
+    unfold applyMove
+    by_cases h1 : p = dst
+    · simp [h1]
+    · by_cases h2 : p = src
+      · simp [h2]
+      · simp [h1, h2]
+  -- The new white-square set is the old one with src removed and dst added.
+  have h_set_eq : colorSquares (applyMove b src dst) c =
+      insert dst ((colorSquares b c).erase src) := by
+    ext p
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and,
+               Finset.mem_insert, Finset.mem_erase]
+    show (∃ k, (applyMove b src dst).pieces p = some ⟨c, k⟩) ↔
+         p = dst ∨ p ≠ src ∧ ∃ k, b p = some ⟨c, k⟩
+    rw [apply_eq]
+    by_cases h1 : p = dst
+    · subst h1
+      rw [if_pos rfl]
+      refine ⟨fun _ => Or.inl rfl, fun _ => ⟨k_src, h_src_at⟩⟩
+    · rw [if_neg h1]
+      by_cases h2 : p = src
+      · subst h2
+        rw [if_pos rfl]
+        refine ⟨fun ⟨_, hk⟩ => ?_, ?_⟩
+        · cases hk
+        · rintro (h | ⟨h, _⟩)
+          · exact (h1 h).elim
+          · exact (h rfl).elim
+      · rw [if_neg h2]
+        refine ⟨fun h => Or.inr ⟨h2, h⟩, ?_⟩
+        rintro (h | ⟨_, h⟩)
+        · exact (h1 h).elim
+        · exact h
+  rw [h_set_eq]
+  have h_dst_not_in_erase : dst ∉ (colorSquares b c).erase src := by
+    rw [Finset.mem_erase]; rintro ⟨_, h⟩; exact h_dst_notin h
+  rw [Finset.card_insert_of_notMem h_dst_not_in_erase,
+      Finset.card_erase_of_mem h_src_in]
+  have h_pos : (colorSquares b c).card ≥ 1 :=
+    Finset.card_pos.mpr ⟨src, h_src_in⟩
+  omega
 
 -- Step B (opponent ply): a non-capturing move whose source carries a
 -- `c.opponent`-piece leaves `colorSquares _ c` literally unchanged.
