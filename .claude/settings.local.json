@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(lake build *)",
-      "Bash(lake --version)"
+      "Bash(lake --version)",
+      "Bash(find \"e:\\\\code\\\\lean\\\\hello_world\\\\hello_world\\\\Chess\\\\proofs\\\\two_rook_ladder_mate\\\\\" -type f -name \"*.lean\" | head -20)"
     ]
   }
 }

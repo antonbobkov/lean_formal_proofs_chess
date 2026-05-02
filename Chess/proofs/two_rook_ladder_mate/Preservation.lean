@@ -60,11 +60,12 @@ lemma LadderShape_OnlyBlackKingPreserved {n : Nat} {board : Board n}
 -- WHITE-PIECE POSITIONS AFTER ONE LADDER PLY (lemma A)
 -- ------------------------------------------------------------
 -- After white's ladder ply, the three white pieces sit at specific
--- squares determined by the original phase. Two pieces are unchanged
--- (proved via `NoCaptureMove_PreservesPiece`); the third is at the
--- move's `dst`. We split by phase because the configuration after
--- moveK has the king on rank+1, which doesn't match any
--- `LadderShape` position helper using the original `h`.
+-- squares — namely the squares predicted by the *next* `LadderShape`
+-- state's position helpers (`nextRank` for rank, `nextPhase` for the
+-- rook configuration). Two pieces are unchanged (proved via
+-- `NoCaptureMove_PreservesPiece`); the third is at the move's `dst`.
+-- The moveK case additionally needs the next-rank bound
+-- `rank.val + 3 < n` to form `kingPos` / `rookXPos` for `rank+1`.
 
 -- Phase moveRb: white moves Rb (rank,1) → (rank+1,1).
 -- Resulting positions match `LadderShape` for (rank, .moveRa).
@@ -135,28 +136,34 @@ lemma LadderStep_PiecesAt_moveRa {n : Nat} {board : Board n} {rank : Fin n}
     unfold applyMove; simp; rw [h_src_eq]; exact hRa_at
 
 -- Phase moveK: white moves K (rank,0) → (rank+1,0).
--- The king's new square doesn't match any `kingPos rank _`, so we use
--- the raw position (which is `(nextWhiteMove lsh).2`).
+-- Resulting positions match `LadderShape` for (rank+1, .moveRb), i.e.
+-- the next state's position helpers — paralleling moveRb/moveRa above.
+-- This requires the next-rank bound `rank.val + 3 < n`.
 lemma LadderStep_PiecesAt_moveK {n : Nat} {board : Board n} {rank : Fin n}
-    (lsh : LadderShape board rank .moveK) :
-    let h := lsh.hRfits
+    (lsh : LadderShape board rank .moveK)
+    (hRoom : rank.val + 3 < n) :
+    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
+    let h' : rank'.val + 2 < n := hRoom
     let b' := ladderStep lsh
-    b' (nextWhiteMove lsh).2 = some ⟨.White, .King⟩ ∧
-    b' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
-    b' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
+    b' (kingPos rank' h') = some ⟨.White, .King⟩ ∧
+    b' (rookBPos rank' .moveRb h') = some ⟨.White, .Rook⟩ ∧
+    b' (rookAPos rank' .moveRb h') = some ⟨.White, .Rook⟩ := by
   obtain ⟨_, hK_at, hRb_at, hRa_at, _⟩ := lsh.unfold
   have dst_empty := LadderMove_IntoEmptySquare lsh
   have h_src_eq : (nextWhiteMove lsh).1 = kingPos rank lsh.hRfits := rfl
   refine ⟨?_, ?_, ?_⟩
-  · -- King moved to dst
-    show (applyMove board _ _).pieces _ = _
+  · -- King moved to dst; rewrite the target square as `(nextWhiteMove lsh).2`
+    -- (defeq to `kingPos rank' h'` modulo proof irrelevance) so the `==` in
+    -- `applyMove` reduces.
+    show (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2).pieces
+        (nextWhiteMove lsh).2 = some ⟨.White, .King⟩
     unfold applyMove; simp; rw [h_src_eq]; exact hK_at
-  · -- Rb unchanged at (rank+1, 1)
+  · -- Rb unchanged at (rank+1, 1) = rookBPos (rank+1) .moveRb _
     apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRb_at _ dst_empty
     rw [h_src_eq]; intro heq
     have := congrArg (fun p : Pos n => p.file.val) heq
     simp [kingPos, rookBPos] at this
-  · -- Ra unchanged at (rank+2, 0)
+  · -- Ra unchanged at (rank+2, 0) = rookAPos (rank+1) .moveRb _
     apply NoCaptureMove_PreservesPiece _ _ _ _ _ hRa_at _ dst_empty
     rw [h_src_eq]; intro heq
     have := congrArg (fun p : Pos n => p.rank.val) heq
@@ -242,18 +249,22 @@ lemma LadderShape_WhitePiecesPreserved_moveRa {n : Nat} {board : Board n}
          whitePiecePreserved hRb_step rfl hbsrc bdst_empty,
          whitePiecePreserved hRa_step rfl hbsrc bdst_empty⟩
 
--- moveK case
+-- moveK case — uses next-state position helpers (rank+1, .moveRb), matching
+-- the uniform shape of `LadderStep_PiecesAt_moveK`. Needs `rank.val + 3 < n`.
 lemma LadderShape_WhitePiecesPreserved_moveK {n : Nat} {board : Board n}
     {rank : Fin n}
-    (lsh : LadderShape board rank .moveK) {bsrc bdst : Pos n}
+    (lsh : LadderShape board rank .moveK)
+    (hRoom : rank.val + 3 < n)
+    {bsrc bdst : Pos n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst)
     (bdst_empty : (ladderStep lsh) bdst = none) :
-    let h := lsh.hRfits
+    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
+    let h' : rank'.val + 2 < n := hRoom
     let b'' := applyMove (ladderStep lsh) bsrc bdst
-    b'' (nextWhiteMove lsh).2 = some ⟨.White, .King⟩ ∧
-    b'' (rookBPos rank .moveK h) = some ⟨.White, .Rook⟩ ∧
-    b'' (rookAPos rank .moveK h) = some ⟨.White, .Rook⟩ := by
-  obtain ⟨hK_step, hRb_step, hRa_step⟩ := LadderStep_PiecesAt_moveK lsh
+    b'' (kingPos rank' h') = some ⟨.White, .King⟩ ∧
+    b'' (rookBPos rank' .moveRb h') = some ⟨.White, .Rook⟩ ∧
+    b'' (rookAPos rank' .moveRb h') = some ⟨.White, .Rook⟩ := by
+  obtain ⟨hK_step, hRb_step, hRa_step⟩ := LadderStep_PiecesAt_moveK lsh hRoom
   have hbsrc := blackMove_src_isBlack lsh black_move
   exact ⟨whitePiecePreserved hK_step rfl hbsrc bdst_empty,
          whitePiecePreserved hRb_step rfl hbsrc bdst_empty,
@@ -263,26 +274,17 @@ lemma LadderShape_WhitePiecesPreserved_moveK {n : Nat} {board : Board n}
 -- ------------------------------------------------------------
 -- PRESERVATION THEOREM (statement only)
 -- ------------------------------------------------------------
--- KNOWN LIMITATION (moveK rank-bound):
--- The conclusion uses `nextRank rank φ lsh.hRfits`, which on the moveK
--- ply produces ⟨rank.val + 1, _⟩. `LadderShape` then requires
--- (rank+1).val + 2 < n, i.e. rank.val + 3 < n — but `lsh.hRfits` only
--- gives rank.val + 2 < n. So when φ = moveK and rank.val + 2 = n − 1
--- (the final cycle before mate), the conclusion's bound fails and
--- `LadderShape` reduces to `False`. The current statement is therefore
--- unprovable as written for that boundary case.
---
--- Two ways to fix when we tackle this:
---   (a) add a hypothesis `(φ = .moveK → rank.val + 3 < n)`, or
---   (b) weaken the conclusion to `IsCheckmate _ .Black ∨ LadderShape …`.
--- (b) is closer in spirit to `ladderMate_termination` and avoids
--- threading an extra side-condition through every caller.
--- This same subtlety is why the moveK helpers above had to spell out
--- the post-step king square via `(nextWhiteMove lsh).2` instead of a
--- `kingPos`-style expression.
+-- The `hMoveK` hypothesis supplies the next-rank bound when φ = moveK:
+-- the conclusion uses `nextRank rank φ lsh.hRfits`, which on the moveK
+-- ply produces ⟨rank.val + 1, _⟩, and `LadderShape` then requires
+-- (rank+1).val + 2 < n, i.e. rank.val + 3 < n. Callers (e.g.
+-- `ladderMate_termination`) must ensure this — at the boundary
+-- rank.val + 2 = n − 1 the bound fails, but at that point Black is
+-- already checkmated so preservation is not invoked.
 theorem LadderShape.preservation {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (lsh : LadderShape board rank φ)
+    (hMoveK : φ = .moveK → rank.val + 3 < n)
     {bsrc bdst : Pos n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
     LadderShape
@@ -319,7 +321,10 @@ theorem ladderMate_termination {n : Nat}
                          (reply (ladderStep s.shape)).2
               rank  := nextRank s.rank s.phase s.shape.hRfits
               phase := nextPhase s.phase
-              shape := LadderShape.preservation s.shape (hreply s) })^[k] s₀).board
+              -- TODO: restructure `step` to skip the boundary moveK case
+              -- (where `s.rank.val + 3 < n` fails); at that boundary Black
+              -- is already checkmated so preservation is not needed.
+              shape := LadderShape.preservation s.shape sorry (hreply s) })^[k] s₀).board
         .Black := by
   sorry
   /-
