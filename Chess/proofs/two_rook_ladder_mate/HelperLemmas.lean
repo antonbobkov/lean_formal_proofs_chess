@@ -280,5 +280,26 @@ lemma Q_of_subset_card_le {n : Nat} (b : Board n) (c : Color)
     (h_card : (colorSquares b c).card ≤ 3) :
     ∀ p, (∃ k, b p = some ⟨c, k⟩) →
          p = p1 ∨ p = p2 ∨ p = p3 := by
-  sorry
+  have h_sub : ({p1, p2, p3} : Finset (Pos n)) ⊆ colorSquares b c := by
+    intro p hp
+    simp only [Finset.mem_insert, Finset.mem_singleton] at hp
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+    rcases hp with rfl | rfl | rfl
+    · exact h1
+    · exact h2
+    · exact h3
+  have h_card_three : ({p1, p2, p3} : Finset (Pos n)).card = 3 := by
+    rw [Finset.card_insert_of_notMem, Finset.card_insert_of_notMem,
+        Finset.card_singleton]
+    · simp [h_23]
+    · simp [Finset.mem_insert, Finset.mem_singleton, h_12, h_13]
+  have h_eq : ({p1, p2, p3} : Finset (Pos n)) = colorSquares b c :=
+    Finset.eq_of_subset_of_card_le h_sub (h_card_three ▸ h_card)
+  intro p hp
+  have hp_in : p ∈ colorSquares b c := by
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+    exact hp
+  rw [← h_eq] at hp_in
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hp_in
+  exact hp_in
 
