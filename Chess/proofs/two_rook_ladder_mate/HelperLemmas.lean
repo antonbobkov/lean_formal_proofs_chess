@@ -171,16 +171,15 @@ lemma applyMove_PreservesOnlyBlackKing {n : Nat} (b : Board n) (src tgt : Pos n)
 -- same machinery is available for future setups that track black-
 -- piece confinement instead.
 --
---   (a) Any non-capturing move preserves the *number* of squares
---       occupied by pieces of color `c`. This is a generic fact
---       about boards, independent of any specific named squares.
---       It splits into two sub-cases:
---         · Friendly ply (a `c`-piece relocates onto an empty square):
---           one element leaves `colorSquares`, one element enters,
---           card unchanged.
---         · Opponent ply (a `c.opponent`-piece relocates onto an
---           empty square): `colorSquares b c` is *literally identical*
---           before and after — no `c`-piece is touched at all.
+--   (a) Any move whose target square does not already carry a
+--       `c`-piece preserves the *number* of squares occupied by
+--       pieces of color `c`. This is a generic fact about boards,
+--       independent of any specific named squares. The source
+--       square's color is irrelevant to the count: working through
+--       the four (src has c?, dst has c?) cases shows the count is
+--       preserved iff `dst` does not have a `c`-piece. The opponent
+--       non-capture case is a direct specialisation (`b dst = none`
+--       trivially gives "dst has no `c`-piece").
 --
 --   (b) The three named squares each carry a `c`-piece in the
 --       post-move board. The per-phase `LadderStep_PiecesAt_*`
@@ -241,114 +240,96 @@ lemma colorSquares_card_le_three_of_Q {n : Nat} (b : Board n) (c : Color)
         refine (Finset.card_insert_le _ _).trans ?_
         simp [Finset.card_singleton]
 
--- Step B (friendly ply): a non-capturing move that relocates a piece
--- of color `c` to an empty square preserves the count of `c`-squares.
--- Generic — does not mention any specific named squares. The premises
--- are what the ladder gives us for white plies: src has a `c`-piece
--- (from the invariant), dst is empty (from `LadderMove_IntoEmptySquare`).
-lemma colorSquares_card_eq_friendlyNonCapture {n : Nat} (b : Board n) (c : Color)
+-- Step B (base): any move whose target carries no `c`-piece
+-- preserves the count of `c`-squares. Working through the four cases
+-- on whether src/dst carry a `c`-piece, the count is preserved iff
+-- `dst` does not — the source's color drops out. Both the friendly-
+-- move case (legal moves never capture friendlies) and the opponent
+-- non-capture case (`b dst = none`) are specialisations.
+lemma colorSquares_card_eq_of_dst_not_c {n : Nat} (b : Board n) (c : Color)
     (src dst : Pos n)
-    (h_src : ∃ k, b src = some ⟨c, k⟩)
-    (h_dst_empty : b dst = none) :
+    (h_dst_not_c : ∀ k, b dst ≠ some ⟨c, k⟩) :
     (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card := by
-  obtain ⟨k_src, h_src_at⟩ := h_src
-  have h_src_in : src ∈ colorSquares b c := by
-    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
-    exact ⟨k_src, h_src_at⟩
+  have apply_eq : ∀ p, (applyMove b src dst).pieces p =
+      if p = dst then b src else if p = src then none else b p := by
+    intro p
+    unfold applyMove
+    by_cases h1 : p = dst
+    · simp [h1]
+    · by_cases h2 : p = src
+      · simp [h2]
+      · simp [h1, h2]
   have h_dst_notin : dst ∉ colorSquares b c := by
     simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
-    rintro ⟨k, hk⟩
-    rw [h_dst_empty] at hk; cases hk
-  have apply_eq : ∀ p, (applyMove b src dst).pieces p =
-      if p = dst then b src else if p = src then none else b p := by
-    intro p
-    unfold applyMove
-    by_cases h1 : p = dst
-    · simp [h1]
-    · by_cases h2 : p = src
-      · simp [h2]
-      · simp [h1, h2]
-  -- The new white-square set is the old one with src removed and dst added.
-  have h_set_eq : colorSquares (applyMove b src dst) c =
-      insert dst ((colorSquares b c).erase src) := by
+    rintro ⟨k, hk⟩; exact h_dst_not_c k hk
+  by_cases h_src_c : ∃ k, b src = some ⟨c, k⟩
+  · -- src carries a c-piece: src leaves the set, dst enters → card same.
+    obtain ⟨k_src, h_src_at⟩ := h_src_c
+    have h_src_in : src ∈ colorSquares b c := by
+      simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
+      exact ⟨k_src, h_src_at⟩
+    have h_set_eq : colorSquares (applyMove b src dst) c =
+        insert dst ((colorSquares b c).erase src) := by
+      ext p
+      simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and,
+                 Finset.mem_insert, Finset.mem_erase]
+      show (∃ k, (applyMove b src dst).pieces p = some ⟨c, k⟩) ↔
+           p = dst ∨ p ≠ src ∧ ∃ k, b p = some ⟨c, k⟩
+      rw [apply_eq]
+      by_cases h1 : p = dst
+      · subst h1; rw [if_pos rfl]
+        exact ⟨fun _ => Or.inl rfl, fun _ => ⟨k_src, h_src_at⟩⟩
+      · rw [if_neg h1]
+        by_cases h2 : p = src
+        · subst h2; rw [if_pos rfl]
+          refine ⟨fun ⟨_, hk⟩ => ?_, ?_⟩
+          · cases hk
+          · rintro (h | ⟨h, _⟩)
+            · exact (h1 h).elim
+            · exact (h rfl).elim
+        · rw [if_neg h2]
+          refine ⟨fun h => Or.inr ⟨h2, h⟩, ?_⟩
+          rintro (h | ⟨_, h⟩)
+          · exact (h1 h).elim
+          · exact h
+    rw [h_set_eq]
+    have h_dst_not_in_erase : dst ∉ (colorSquares b c).erase src := by
+      rw [Finset.mem_erase]; rintro ⟨_, h⟩; exact h_dst_notin h
+    rw [Finset.card_insert_of_notMem h_dst_not_in_erase,
+        Finset.card_erase_of_mem h_src_in]
+    have h_pos : (colorSquares b c).card ≥ 1 :=
+      Finset.card_pos.mpr ⟨src, h_src_in⟩
+    omega
+  · -- src has no c-piece: the set is literally unchanged.
+    have h_src_not_c : ∀ k, b src ≠ some ⟨c, k⟩ :=
+      fun k h => h_src_c ⟨k, h⟩
+    suffices h_set_eq : colorSquares (applyMove b src dst) c = colorSquares b c by
+      rw [h_set_eq]
     ext p
-    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and,
-               Finset.mem_insert, Finset.mem_erase]
+    simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
     show (∃ k, (applyMove b src dst).pieces p = some ⟨c, k⟩) ↔
-         p = dst ∨ p ≠ src ∧ ∃ k, b p = some ⟨c, k⟩
-    rw [apply_eq]
+         (∃ k, b p = some ⟨c, k⟩)
+    rw [apply_eq p]
     by_cases h1 : p = dst
-    · subst h1
-      rw [if_pos rfl]
-      refine ⟨fun _ => Or.inl rfl, fun _ => ⟨k_src, h_src_at⟩⟩
+    · subst h1; rw [if_pos rfl]
+      exact ⟨fun ⟨k, hk⟩ => (h_src_not_c k hk).elim,
+             fun ⟨k, hk⟩ => (h_dst_not_c k hk).elim⟩
     · rw [if_neg h1]
       by_cases h2 : p = src
-      · subst h2
-        rw [if_pos rfl]
-        refine ⟨fun ⟨_, hk⟩ => ?_, ?_⟩
-        · cases hk
-        · rintro (h | ⟨h, _⟩)
-          · exact (h1 h).elim
-          · exact (h rfl).elim
+      · subst h2; rw [if_pos rfl]
+        refine ⟨fun ⟨_, hk⟩ => ?_, fun ⟨k, hk⟩ => (h_src_not_c k hk).elim⟩
+        cases hk
       · rw [if_neg h2]
-        refine ⟨fun h => Or.inr ⟨h2, h⟩, ?_⟩
-        rintro (h | ⟨_, h⟩)
-        · exact (h1 h).elim
-        · exact h
-  rw [h_set_eq]
-  have h_dst_not_in_erase : dst ∉ (colorSquares b c).erase src := by
-    rw [Finset.mem_erase]; rintro ⟨_, h⟩; exact h_dst_notin h
-  rw [Finset.card_insert_of_notMem h_dst_not_in_erase,
-      Finset.card_erase_of_mem h_src_in]
-  have h_pos : (colorSquares b c).card ≥ 1 :=
-    Finset.card_pos.mpr ⟨src, h_src_in⟩
-  omega
 
--- Step B (opponent ply): a non-capturing move whose source carries a
--- `c.opponent`-piece leaves `colorSquares _ c` literally unchanged.
--- Strictly stronger than the friendly-ply lemma (no card needed)
--- because pieces of the opposite color cannot enter or leave
--- `colorSquares _ c`. The `h_dst_empty` premise is the "non-capturing"
--- assumption (currently `sorry`'d in `LadderShape.preservation` as
--- `bdst_empty`).
-lemma colorSquares_eq_opponentNonCapture {n : Nat} (b : Board n) (c : Color)
-    (src dst : Pos n)
-    (h_src : ∃ k, b src = some ⟨c.opponent, k⟩)
-    (h_dst_empty : b dst = none) :
-    colorSquares (applyMove b src dst) c = colorSquares b c := by
-  obtain ⟨k_opp, h_src_at⟩ := h_src
-  have h_color_ne : c.opponent ≠ c := by cases c <;> decide
-  have h_src_not_c : ∀ k, b src ≠ some ⟨c, k⟩ := fun k h => by
-    rw [h_src_at] at h
-    exact h_color_ne (congrArg Piece.color (Option.some.inj h))
-  have h_dst_not_c : ∀ k, b dst ≠ some ⟨c, k⟩ := fun k h => by
-    rw [h_dst_empty] at h; cases h
-  have apply_eq : ∀ p, (applyMove b src dst).pieces p =
-      if p = dst then b src else if p = src then none else b p := by
-    intro p
-    unfold applyMove
-    by_cases h1 : p = dst
-    · simp [h1]
-    · by_cases h2 : p = src
-      · simp [h2]
-      · simp [h1, h2]
-  ext p
-  simp only [colorSquares, Finset.mem_filter, Finset.mem_univ, true_and]
-  show (∃ k, (applyMove b src dst).pieces p = some ⟨c, k⟩) ↔
-       (∃ k, b p = some ⟨c, k⟩)
-  rw [apply_eq p]
-  by_cases h1 : p = dst
-  · subst h1
-    rw [if_pos rfl]
-    exact ⟨fun ⟨k, hk⟩ => (h_src_not_c k hk).elim,
-           fun ⟨k, hk⟩ => (h_dst_not_c k hk).elim⟩
-  · rw [if_neg h1]
-    by_cases h2 : p = src
-    · subst h2
-      rw [if_pos rfl]
-      refine ⟨fun ⟨_, hk⟩ => ?_, fun ⟨k, hk⟩ => (h_src_not_c k hk).elim⟩
-      cases hk
-    · rw [if_neg h2]
+-- Corollary: a non-capturing opponent move (src is anything, dst is
+-- empty) leaves the `c`-count unchanged. Stated separately because
+-- `b dst = none` is the natural premise at the call site (e.g., from
+-- `LadderMove_IntoEmptySquare`).
+lemma colorSquares_card_eq_opponentNonCapture {n : Nat} (b : Board n) (c : Color)
+    (src dst : Pos n) (h_dst_empty : b dst = none) :
+    (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card :=
+  colorSquares_card_eq_of_dst_not_c b c src dst
+    (fun k h => by rw [h_dst_empty] at h; cases h)
 
 -- Step C: closing lemma. Given three pairwise distinct positions
 -- carrying `c`-pieces, plus the `≤ 3` count bound (from steps A/B),
