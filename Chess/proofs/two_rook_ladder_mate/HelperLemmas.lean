@@ -321,15 +321,29 @@ lemma colorSquares_card_eq_of_dst_not_c {n : Nat} (b : Board n) (c : Color)
         cases hk
       · rw [if_neg h2]
 
--- Corollary: a non-capturing opponent move (src is anything, dst is
--- empty) leaves the `c`-count unchanged. Stated separately because
+-- Corollary: a non-capturing move (src is anything, dst is empty)
+-- leaves the `c`-count unchanged. Stated separately because
 -- `b dst = none` is the natural premise at the call site (e.g., from
 -- `LadderMove_IntoEmptySquare`).
-lemma colorSquares_card_eq_opponentNonCapture {n : Nat} (b : Board n) (c : Color)
+lemma colorSquares_card_eq_nonCapture {n : Nat} (b : Board n) (c : Color)
     (src dst : Pos n) (h_dst_empty : b dst = none) :
     (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card :=
   colorSquares_card_eq_of_dst_not_c b c src dst
     (fun k h => by rw [h_dst_empty] at h; cases h)
+
+-- Corollary: a legal move made by color `c` (i.e., `b.turn = c`) leaves
+-- the `c`-count unchanged. The legality of the move rules out a friendly
+-- capture, which is exactly the condition `colorSquares_card_eq_of_dst_not_c`
+-- needs. Captures of opponent pieces are fine — only the count of `c`
+-- is being tracked, and the opponent piece at `dst` carries no `c`-piece.
+lemma colorSquares_card_eq_ourMove {n : Nat} (b : Board n) (c : Color)
+    {src dst : Pos n}
+    (legal : IsLegalMove b src dst) (h_turn : b.turn = c) :
+    (colorSquares (applyMove b src dst) c).card = (colorSquares b c).card := by
+  obtain ⟨_, _, _, h_not_friendly, _⟩ := legal
+  refine colorSquares_card_eq_of_dst_not_c b c src dst ?_
+  intro k h
+  exact h_not_friendly ⟨k, by rw [h_turn]; exact h⟩
 
 -- Step C: closing lemma. Given three pairwise distinct positions
 -- carrying `c`-pieces, plus the `≤ 3` count bound (from steps A/B),
@@ -340,10 +354,11 @@ lemma Q_of_subset_card_le {n : Nat} (b : Board n) (c : Color)
     (h1 : ∃ k, b p1 = some ⟨c, k⟩)
     (h2 : ∃ k, b p2 = some ⟨c, k⟩)
     (h3 : ∃ k, b p3 = some ⟨c, k⟩)
-    (h_12 : p1 ≠ p2) (h_13 : p1 ≠ p3) (h_23 : p2 ≠ p3)
+    (h_distinct : p1 ≠ p2 ∧ p1 ≠ p3 ∧ p2 ≠ p3)
     (h_card : (colorSquares b c).card ≤ 3) :
     ∀ p, (∃ k, b p = some ⟨c, k⟩) →
          p = p1 ∨ p = p2 ∨ p = p3 := by
+  obtain ⟨h_12, h_13, h_23⟩ := h_distinct
   have h_sub : ({p1, p2, p3} : Finset (Pos n)) ⊆ colorSquares b c := by
     intro p hp
     simp only [Finset.mem_insert, Finset.mem_singleton] at hp
