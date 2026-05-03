@@ -148,7 +148,7 @@ lemma LadderShape_KingsApart {n : Nat} {board : Board n} {rank : Fin n}
 -- Re-expresses `applyMove`'s piece-lookup using `Eq` (Prop) rather than the
 -- `BEq`/`Bool` form in the definition, so that `if_pos`/`if_neg` and standard
 -- `Eq` rewriting tools can be used directly on `(applyMove b src dst) p`.
-private lemma applyMove_pieces {n : Nat} (b : Board n) (src dst p : Pos n) :
+lemma applyMove_pieces {n : Nat} (b : Board n) (src dst p : Pos n) :
     (applyMove b src dst) p =
       if p = dst then b src else if p = src then none else b p := by
   show (applyMove b src dst).pieces p = _

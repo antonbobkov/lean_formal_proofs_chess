@@ -366,7 +366,32 @@ lemma LadderMove_BlackKing_FarFromRa {n : Nat} {board : Board n}
     ∀ bp, (ladderStep lsh) bp = some ⟨.Black, .King⟩ →
           2 ≤ bp.file.val ∧
           (rookAPos rank φ lsh.hRfits).rank.val < bp.rank.val := by
-  sorry
+  intro bp hbp
+  obtain ⟨_, hK_at, hRb_at, hRa_at, _, black_loc, _, _⟩ := lsh.unfold
+  -- The white move's source carries some white piece (Rook in moveRb /
+  -- moveRa, King in moveK), and its destination is empty
+  -- (`LadderMove_IntoEmptySquare`). So bp can be neither src nor dst —
+  -- the black king at bp on the step board is already at bp on the
+  -- original board.
+  have hbp' : (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2) bp
+              = some ⟨.Black, .King⟩ := hbp
+  rw [applyMove_pieces] at hbp'
+  have h_src_white :
+      ∃ k, board (nextWhiteMove lsh).1 = some ⟨.White, k⟩ := by
+    cases φ
+    · exact ⟨.Rook, hRb_at⟩
+    · exact ⟨.Rook, hRa_at⟩
+    · exact ⟨.King, hK_at⟩
+  have hbp_orig : board bp = some ⟨.Black, .King⟩ := by
+    by_cases h1 : bp = (nextWhiteMove lsh).2
+    · rw [if_pos h1] at hbp'
+      obtain ⟨_, hk⟩ := h_src_white
+      rw [hk] at hbp'; simp at hbp'
+    · rw [if_neg h1] at hbp'
+      by_cases h2 : bp = (nextWhiteMove lsh).1
+      · rw [if_pos h2] at hbp'; simp at hbp'
+      · rw [if_neg h2] at hbp'; exact hbp'
+  exact ⟨LadderShape_KingsApart lsh bp hbp_orig, black_loc bp hbp_orig⟩
 
 -- (ii) After any legal Black king reply on the step board, the
 -- destination has file ≥ 1 and rank ≥ rookAPos.rank.
