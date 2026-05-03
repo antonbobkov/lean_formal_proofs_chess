@@ -29,7 +29,33 @@ lemma LadderMove_NoWhiteAboveRb {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ) :
     ∀ p k, p.file.val = 1 → rank.val + 1 < p.rank.val →
            (applyLadderStep lsh) p ≠ some ⟨.White, k⟩ := by
-  sorry
+  intro p k hpf hpr hp
+  cases φ with
+  | moveRb =>
+    rcases applyLadderStep_QPart_moveRb lsh p ⟨k, hp⟩ with hp_eq | hp_eq | hp_eq
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [kingPos]
+      omega
+    · have : p.rank.val = rank.val + 1 := by rw [hp_eq]; simp [rookBPos]
+      omega
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [rookAPos]
+      omega
+  | moveRa =>
+    rcases applyLadderStep_QPart_moveRa lsh p ⟨k, hp⟩ with hp_eq | hp_eq | hp_eq
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [kingPos]
+      omega
+    · have : p.rank.val = rank.val + 1 := by rw [hp_eq]; simp [rookBPos]
+      omega
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [rookAPos]
+      omega
+  | moveK =>
+    have hRoom := lsh.moveK_hRoom
+    rcases applyLadderStep_QPart_moveK lsh hRoom p ⟨k, hp⟩ with hp_eq | hp_eq | hp_eq
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [kingPos]
+      omega
+    · have : p.rank.val = rank.val + 1 := by rw [hp_eq]; simp [rookBPos]
+      omega
+    · have : p.file.val = 0 := by rw [hp_eq]; simp [rookAPos]
+      omega
 
 -- (2) Phase moveK (K → Rb): after the king's ply, no white piece sits
 -- to the right of the post-step Ra rook. Post-step Ra is at (rank+2, 0);
