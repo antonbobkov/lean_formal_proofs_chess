@@ -317,7 +317,11 @@ lemma LadderStep_QPart_moveRa {n : Nat} {board : Board n} {rank : Fin n}
          p = kingPos rank h ∨
          p = rookBPos rank .moveK h ∨
          p = rookAPos rank .moveK h := by
-  sorry
+  obtain ⟨hK, hRb, hRa⟩ := LadderStep_PiecesAt_moveRa lsh
+  exact Q_of_subset_card_le _ .White
+    ⟨.King, hK⟩ ⟨.Rook, hRb⟩ ⟨.Rook, hRa⟩
+    (ladderPos_pairwise_distinct rank .moveK lsh.hRfits)
+    (whiteCount_le_three_after_step lsh)
 
 lemma LadderStep_QPart_moveK {n : Nat} {board : Board n} {rank : Fin n}
     (lsh : LadderShape board rank .moveK) (hRoom : rank.val + 3 < n) :
