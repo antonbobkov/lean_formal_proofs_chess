@@ -158,53 +158,6 @@ lemma LadderStep_PiecesAt_moveK {n : Nat} {board : Board n} {rank : Fin n}
 
 
 -- ------------------------------------------------------------
--- Q ON THE STEP BOARD
--- ------------------------------------------------------------
--- Companions to `LadderStep_PiecesAt_*`: not only do the three named
--- squares carry white pieces after White's ply, those are the *only*
--- squares carrying white pieces. Recovered from the input Q via the
--- counting machinery — `whiteCount_le_three_after_step` for the count
--- bound and the `LadderStep_PiecesAt_*` triple plus
--- `ladderPos_pairwise_distinct` for the saturating subset, fed into
--- `Q_of_subset_card_le`.
---
--- Like `LadderStep_PiecesAt_*`, the three squares are phase-dependent
--- (they are the next state's named positions), so this is split into
--- one lemma per input phase.
-
-lemma LadderStep_QPart_moveRb {n : Nat} {board : Board n} {rank : Fin n}
-    (lsh : LadderShape board rank .moveRb) :
-    let h := lsh.hRfits
-    let b' := ladderStep lsh
-    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
-         p = kingPos rank h ∨
-         p = rookBPos rank .moveRa h ∨
-         p = rookAPos rank .moveRa h := by
-  sorry
-
-lemma LadderStep_QPart_moveRa {n : Nat} {board : Board n} {rank : Fin n}
-    (lsh : LadderShape board rank .moveRa) :
-    let h := lsh.hRfits
-    let b' := ladderStep lsh
-    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
-         p = kingPos rank h ∨
-         p = rookBPos rank .moveK h ∨
-         p = rookAPos rank .moveK h := by
-  sorry
-
-lemma LadderStep_QPart_moveK {n : Nat} {board : Board n} {rank : Fin n}
-    (lsh : LadderShape board rank .moveK) (hRoom : rank.val + 3 < n) :
-    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
-    let h' : rank'.val + 2 < n := hRoom
-    let b' := ladderStep lsh
-    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
-         p = kingPos rank' h' ∨
-         p = rookBPos rank' .moveRb h' ∨
-         p = rookAPos rank' .moveRb h' := by
-  sorry
-
-
--- ------------------------------------------------------------
 -- HELPERS FOR WHITE-PIECE PRESERVATION
 -- ------------------------------------------------------------
 -- Used inline by `LadderShape.preservation` (the per-phase plumbing
@@ -325,6 +278,57 @@ private lemma whiteCount_le_three_after_cycle {n : Nat} {board : Board n}
     colorSquares_card_eq_nonCapture (ladderStep lsh) .White
       bsrc bdst bdst_empty
   omega
+
+
+-- ------------------------------------------------------------
+-- Q ON THE STEP BOARD
+-- ------------------------------------------------------------
+-- Companions to `LadderStep_PiecesAt_*`: not only do the three named
+-- squares carry white pieces after White's ply, those are the *only*
+-- squares carrying white pieces. Recovered from the input Q via the
+-- counting machinery — `whiteCount_le_three_after_step` for the count
+-- bound and the `LadderStep_PiecesAt_*` triple plus
+-- `ladderPos_pairwise_distinct` for the saturating subset, fed into
+-- `Q_of_subset_card_le`.
+--
+-- Like `LadderStep_PiecesAt_*`, the three squares are phase-dependent
+-- (they are the next state's named positions), so this is split into
+-- one lemma per input phase.
+
+lemma LadderStep_QPart_moveRb {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRb) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank h ∨
+         p = rookBPos rank .moveRa h ∨
+         p = rookAPos rank .moveRa h := by
+  obtain ⟨hK, hRb, hRa⟩ := LadderStep_PiecesAt_moveRb lsh
+  exact Q_of_subset_card_le _ .White
+    ⟨.King, hK⟩ ⟨.Rook, hRb⟩ ⟨.Rook, hRa⟩
+    (ladderPos_pairwise_distinct rank .moveRa lsh.hRfits)
+    (whiteCount_le_three_after_step lsh)
+
+lemma LadderStep_QPart_moveRa {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRa) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank h ∨
+         p = rookBPos rank .moveK h ∨
+         p = rookAPos rank .moveK h := by
+  sorry
+
+lemma LadderStep_QPart_moveK {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveK) (hRoom : rank.val + 3 < n) :
+    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
+    let h' : rank'.val + 2 < n := hRoom
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank' h' ∨
+         p = rookBPos rank' .moveRb h' ∨
+         p = rookAPos rank' .moveRb h' := by
+  sorry
 
 
 -- ------------------------------------------------------------
