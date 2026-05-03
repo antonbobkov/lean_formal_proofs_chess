@@ -401,7 +401,28 @@ lemma BlackReply_DstBounds {n : Nat} {board : Board n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
     1 ≤ bdst.file.val ∧
     (rookAPos rank φ lsh.hRfits).rank.val ≤ bdst.rank.val := by
-  sorry
+  obtain ⟨turn_white, _⟩ := lsh.unfold
+  -- The step board has Black to move (White's ply flips the turn).
+  have h_turn : (ladderStep lsh).turn = .Black := by
+    show board.turn.opponent = .Black
+    rw [turn_white]; rfl
+  -- Unpack IsLegalMove and pin the moving piece to .King via
+  -- `LadderMove_PreservesOnlyBlackKing`.
+  obtain ⟨piece, hat_src, h_valid, _, _⟩ := black_move
+  rw [h_turn] at hat_src
+  have hk : piece = .King :=
+    LadderMove_PreservesOnlyBlackKing lsh bsrc piece hat_src
+  subst hk
+  -- bsrc inherits the BlackKing bounds; ValidKingMove gives WithinOne
+  -- on each coordinate, so bdst is at most one square away.
+  obtain ⟨h_bsrc_file, h_bsrc_rank⟩ :=
+    LadderMove_BlackKing_FarFromRa lsh bsrc hat_src
+  change ValidKingMove bsrc bdst at h_valid
+  obtain ⟨_, h_rank, h_file⟩ := h_valid
+  unfold WithinOne at h_rank h_file
+  refine ⟨?_, ?_⟩
+  · omega
+  · omega
 
 -- (iii) On the step board, the White king attacks the square at
 -- (file = 1, rank = rookAPos.rank). Pure phase-by-phase check: the
