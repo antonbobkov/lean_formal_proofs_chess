@@ -119,4 +119,34 @@ lemma LadderMove_BlackInCheck_AtRaRankPlusOne_FileGe2_moveRa
           kp.rank.val = (rookAPos rank .moveRa lsh.hRfits).rank.val + 1 →
           2 ≤ kp.file.val →
           IsCheck (applyLadderStep lsh) .Black := by
-  sorry
+  intro kp hkp hkp_rank hkp_file
+  obtain ⟨_, _, hRa_at⟩ := applyLadderStep_PiecesAt_moveRa lsh
+  have hRa_rank : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
+    simp [rookAPos]
+  have hRa_file : (rookAPos rank .moveK lsh.hRfits).file.val = 0 := by
+    simp [rookAPos]
+  have hpreRa_rank : (rookAPos rank .moveRa lsh.hRfits).rank.val = rank.val + 1 := by
+    simp [rookAPos]
+  have only_bk := LadderMove_PreservesOnlyBlackKing lsh
+  obtain ⟨_, _, _, _, h_step_legal⟩ := ladderStep_isLegal lsh
+  obtain ⟨_, ⟨_, _, hbk_uniq⟩, _⟩ := h_step_legal
+  have unique_bk : ∀ p,
+      (applyLadderStep lsh) p = some ⟨.Black, .King⟩ → p = kp := fun p hp =>
+    (hbk_uniq p hp).trans (hbk_uniq kp hkp).symm
+  have no_white_right :
+      ∀ p k, p.rank = (rookAPos rank .moveK lsh.hRfits).rank →
+             (rookAPos rank .moveK lsh.hRfits).file.val < p.file.val →
+             (applyLadderStep lsh) p ≠ some ⟨.White, k⟩ := by
+    intro p k hpr hpf
+    apply LadderMove_NoWhiteRightOfRa_moveRa lsh p k
+    · have := congrArg Fin.val hpr; omega
+    · rw [hRa_file] at hpf; exact hpf
+  have same_rank :
+      kp.rank = (rookAPos rank .moveK lsh.hRfits).rank := by
+    apply Fin.ext; rw [hkp_rank]; omega
+  have king_right :
+      (rookAPos rank .moveK lsh.hRfits).file.val < kp.file.val := by
+    rw [hRa_file]; omega
+  exact RookCheckRight (applyLadderStep lsh)
+    (rookAPos rank .moveK lsh.hRfits) kp
+    hRa_at hkp only_bk unique_bk no_white_right same_rank king_right
