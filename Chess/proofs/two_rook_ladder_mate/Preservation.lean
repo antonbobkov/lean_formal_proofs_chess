@@ -447,7 +447,58 @@ lemma LadderMove_WhiteKingAttacks_FileOneRaRank {n : Nat} {board : Board n}
             q.file.val = 1 →
             q.rank.val = (rookAPos rank φ lsh.hRfits).rank.val →
             ValidKingMove wk q := by
-  sorry
+  intro wk q hwk hqfile hqrank
+  cases φ with
+  | moveRb =>
+    obtain ⟨_, hRb_at, hRa_at⟩ := LadderStep_PiecesAt_moveRb lsh
+    rcases LadderStep_QPart_moveRb lsh wk ⟨.King, hwk⟩ with hwk_eq | hwk_eq | hwk_eq
+    · rw [hwk_eq]
+      have hRa_rank : (rookAPos rank .moveRb lsh.hRfits).rank.val = rank.val + 1 := by
+        simp [rookAPos]
+      refine ⟨?_, ?_, ?_⟩
+      · intro heq
+        have := congrArg (·.file.val) heq
+        simp [kingPos] at this; omega
+      · unfold WithinOne; simp [kingPos]; omega
+      · unfold WithinOne; simp [kingPos]; omega
+    · rw [hwk_eq, hRb_at] at hwk; simp at hwk
+    · rw [hwk_eq, hRa_at] at hwk; simp at hwk
+  | moveRa =>
+    obtain ⟨_, hRb_at, hRa_at⟩ := LadderStep_PiecesAt_moveRa lsh
+    rcases LadderStep_QPart_moveRa lsh wk ⟨.King, hwk⟩ with hwk_eq | hwk_eq | hwk_eq
+    · rw [hwk_eq]
+      have hRa_rank : (rookAPos rank .moveRa lsh.hRfits).rank.val = rank.val + 1 := by
+        simp [rookAPos]
+      refine ⟨?_, ?_, ?_⟩
+      · intro heq
+        have := congrArg (·.file.val) heq
+        simp [kingPos] at this; omega
+      · unfold WithinOne; simp [kingPos]; omega
+      · unfold WithinOne; simp [kingPos]; omega
+    · rw [hwk_eq, hRb_at] at hwk; simp at hwk
+    · rw [hwk_eq, hRa_at] at hwk; simp at hwk
+  | moveK =>
+    -- Same hRoom derivation as in LadderMove_OnlyFileOneRaRank_InRegion.
+    obtain ⟨_, _, _, _, _, black_loc, _, _, ⟨bp, hbp, _⟩, _⟩ := lsh.unfold
+    have hRoom : rank.val + 3 < n := by
+      have hb := black_loc bp hbp
+      have hRa : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
+        simp [rookAPos]
+      have : bp.rank.val < n := bp.rank.isLt
+      omega
+    obtain ⟨_, hRb_at, hRa_at⟩ := LadderStep_PiecesAt_moveK lsh hRoom
+    rcases LadderStep_QPart_moveK lsh hRoom wk ⟨.King, hwk⟩ with hwk_eq | hwk_eq | hwk_eq
+    · rw [hwk_eq]
+      have hRa_rank : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
+        simp [rookAPos]
+      refine ⟨?_, ?_, ?_⟩
+      · intro heq
+        have := congrArg (·.file.val) heq
+        simp [kingPos] at this; omega
+      · unfold WithinOne; simp [kingPos]; omega
+      · unfold WithinOne; simp [kingPos]; omega
+    · rw [hwk_eq, hRb_at] at hwk; simp at hwk
+    · rw [hwk_eq, hRa_at] at hwk; simp at hwk
 
 -- Corollary of (iii): a legal Black reply cannot land on the
 -- (file = 1, rank = rookAPos.rank) square — going there would leave
