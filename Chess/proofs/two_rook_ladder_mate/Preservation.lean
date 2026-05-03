@@ -503,7 +503,49 @@ lemma BlackReply_NotAtFileOneRaRank {n : Nat} {board : Board n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
     ¬ (bdst.file.val = 1 ∧
        bdst.rank.val = (rookAPos rank φ lsh.hRfits).rank.val) := by
-  sorry
+  rintro ⟨hfile, hrank⟩
+  obtain ⟨piece, hat_src, h_valid, _, h_legal⟩ := black_move
+  obtain ⟨turn_white, _⟩ := lsh.unfold
+  have h_turn_step : (ladderStep lsh).turn = .Black := by
+    show board.turn.opponent = .Black
+    rw [turn_white]; rfl
+  rw [h_turn_step] at hat_src
+  have hk : piece = .King := LadderMove_PreservesOnlyBlackKing lsh bsrc piece hat_src
+  subst hk
+  change ValidKingMove bsrc bdst at h_valid
+  -- Get a witness wk for the White king on the step board (per phase).
+  have h_wk_exists : ∃ wk, (ladderStep lsh) wk = some ⟨.White, .King⟩ := by
+    cases φ with
+    | moveRb => exact ⟨_, (LadderStep_PiecesAt_moveRb lsh).1⟩
+    | moveRa => exact ⟨_, (LadderStep_PiecesAt_moveRa lsh).1⟩
+    | moveK  => exact ⟨_, (LadderStep_PiecesAt_moveK lsh lsh.moveK_hRoom).1⟩
+  obtain ⟨wk, hwk_at⟩ := h_wk_exists
+  -- The White king on the step board attacks bdst (the assumed square).
+  have h_attack : ValidKingMove wk bdst :=
+    LadderMove_WhiteKingAttacks_FileOneRaRank lsh wk bdst hwk_at hfile hrank
+  -- wk ≠ bsrc: bsrc has the black king, wk has the white king.
+  have h_wk_ne_bsrc : wk ≠ bsrc := by
+    intro heq; subst heq
+    rw [hat_src] at hwk_at; simp at hwk_at
+  -- wk ≠ bdst: the first conjunct of `ValidKingMove`.
+  have h_wk_ne_bdst : wk ≠ bdst := h_attack.1
+  -- White king is preserved across the black move (wk is neither src nor dst).
+  have hwk_on_b'' :
+      (applyMove (ladderStep lsh) bsrc bdst) wk = some ⟨.White, .King⟩ := by
+    rw [applyMove_pieces, if_neg h_wk_ne_bdst, if_neg h_wk_ne_bsrc]
+    exact hwk_at
+  -- Black king is at bdst on the post-reply board.
+  have hb''_bdst :
+      (applyMove (ladderStep lsh) bsrc bdst) bdst = some ⟨.Black, .King⟩ := by
+    rw [applyMove_pieces, if_pos rfl]; exact hat_src
+  -- The third conjunct of IsLegalSetup gives ¬ IsCheck on the side
+  -- not to move; the post-reply turn is White, so its opponent is Black.
+  obtain ⟨_, _, h_no_check⟩ := h_legal
+  have h_b''_opp : (applyMove (ladderStep lsh) bsrc bdst).turn.opponent = .Black := by
+    show (ladderStep lsh).turn.opponent.opponent = .Black
+    rw [h_turn_step]; rfl
+  rw [h_b''_opp] at h_no_check
+  exact h_no_check ⟨bdst, hb''_bdst, wk, .inr ⟨hwk_on_b'', h_attack⟩⟩
 
 -- (iv) On the step board, any White piece at file ≥ 1 and
 -- rank ≥ rookAPos.rank sits at exactly (file = 1, rank = rookAPos.rank).
