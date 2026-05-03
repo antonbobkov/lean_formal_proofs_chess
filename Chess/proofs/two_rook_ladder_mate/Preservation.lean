@@ -596,7 +596,11 @@ lemma BlackReply_DstNotWhite {n : Nat} {board : Board n}
     {bsrc bdst : Pos n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
     ∀ k, (ladderStep lsh) bdst ≠ some ⟨.White, k⟩ := by
-  sorry
+  intro k hk
+  obtain ⟨h_file, h_rank⟩ := BlackReply_DstBounds lsh black_move
+  have h_at :=
+    LadderMove_OnlyFileOneRaRank_InRegion lsh bdst h_file h_rank ⟨k, hk⟩
+  exact BlackReply_NotAtFileOneRaRank lsh black_move h_at
 
 -- Final: the destination is empty on the step board. Combines
 -- `BlackReply_DstNotWhite` with "any black piece on the step board is
