@@ -113,6 +113,43 @@ lemma OpponentOnlyKingFarAway_NoCheck {n : Nat} (b : Board n)
     unfold WithinOne at hwo
     omega
 
+-- RU: rook gives check upward. If a white rook sits at `rp`, the black
+-- king sits at `kp` on the same file but strictly higher rank, no white
+-- piece occupies any square above the rook on that file, and the only
+-- black piece is the (unique) black king at `kp`, then black is in check.
+-- Premises (`only_bk` + `unique_bk` together: "we have only black king")
+-- rule out any other piece blocking the rook's vertical line of sight to
+-- the king, so `ValidRookMove rp kp` holds.
+lemma RookCheckUp {n : Nat} (b : Board n)
+    (rp kp : Pos n)
+    (h_rook : b rp = some ⟨.White, .Rook⟩)
+    (h_king : b kp = some ⟨.Black, .King⟩)
+    (only_bk : ∀ p k, b p = some ⟨.Black, k⟩ → k = .King)
+    (unique_bk : ∀ p, b p = some ⟨.Black, .King⟩ → p = kp)
+    (no_white_above : ∀ p k, p.file = rp.file → rp.rank.val < p.rank.val →
+                              b p ≠ some ⟨.White, k⟩)
+    (same_file : kp.file = rp.file)
+    (king_above : rp.rank.val < kp.rank.val) :
+    IsCheck b .Black := by
+  sorry
+
+-- RR: rook gives check rightward. Same shape as `RookCheckUp` with the
+-- file/rank axes swapped: the rook and king share a rank, the king is at
+-- a strictly higher file, no white piece sits to the right of the rook on
+-- that rank, and only-black-king rules out blockers in between.
+lemma RookCheckRight {n : Nat} (b : Board n)
+    (rp kp : Pos n)
+    (h_rook : b rp = some ⟨.White, .Rook⟩)
+    (h_king : b kp = some ⟨.Black, .King⟩)
+    (only_bk : ∀ p k, b p = some ⟨.Black, k⟩ → k = .King)
+    (unique_bk : ∀ p, b p = some ⟨.Black, .King⟩ → p = kp)
+    (no_white_right : ∀ p k, p.rank = rp.rank → rp.file.val < p.file.val →
+                              b p ≠ some ⟨.White, k⟩)
+    (same_rank : kp.rank = rp.rank)
+    (king_right : rp.file.val < kp.file.val) :
+    IsCheck b .Black := by
+  sorry
+
 -- an empty target square cannot be friendly-occupied, regardless of
 -- whose turn it is.
 lemma EmptySquare_NotFriendly {n : Nat} (b : Board n) (dst : Pos n)
