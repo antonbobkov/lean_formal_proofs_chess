@@ -142,7 +142,7 @@ lemma LadderShape.unfold {n : Nat} {board : Board n} {rank : Fin n}
 -- Given a `LadderShape` proof, return the (src, dst) pair for
 -- the unique White move dictated by the procedure. Total — the
 -- proof guarantees the bound holds.
-def nextWhiteMove {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
+def ladderStep {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
     (ladder_shape_hypothesis : LadderShape board rank φ) : Pos n × Pos n :=
   have hbnd : rank.val + 2 < n := ladder_shape_hypothesis.hRfits
   match φ with
@@ -157,9 +157,9 @@ def nextWhiteMove {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
 -- ------------------------------------------------------------
 -- Returns the board after one White ply. `applyMove` already flips
 -- the turn, so the resulting board has Black to move.
-def ladderStep {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
+def applyLadderStep {n : Nat} {board : Board n} {rank : Fin n} {φ : LadderPhase}
     (ladder_shape_hypothesis : LadderShape board rank φ) : Board n :=
-  let move := nextWhiteMove ladder_shape_hypothesis
+  let move := ladderStep ladder_shape_hypothesis
   applyMove board move.1 move.2
 
 

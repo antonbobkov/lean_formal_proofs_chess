@@ -1,5 +1,4 @@
 import ChessRules
-import FunctionDefinition
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Fintype.Prod
 
@@ -182,13 +181,13 @@ lemma applyMove_PreservesOnlyBlackKing {n : Nat} (b : Board n) (src tgt : Pos n)
 --       trivially gives "dst has no `c`-piece").
 --
 --   (b) The three named squares each carry a `c`-piece in the
---       post-move board. The per-phase `LadderStep_PiecesAt_*`
+--       post-move board. The per-phase `applyLadderStep_PiecesAt_*`
 --       lemmas (plus `whitePiecePreserved` for the black ply)
 --       already give us this for the white case.
 --
 --   (c) The three named squares are pairwise distinct. Purely
 --       combinatorial; for the ladder, this drops out of the
---       rank/file definitions in `FunctionDefinition.lean`.
+--       rank/file definitions in `TRC_FunctionWithInvariant.lean`.
 --
 -- Putting them together: from Q on the original board we get
 -- `(colorSquares b c).card ≤ 3`; (a) propagates the bound to the
@@ -381,4 +380,3 @@ lemma Q_of_subset_card_le {n : Nat} (b : Board n) (c : Color)
   rw [← h_eq] at hp_in
   simp only [Finset.mem_insert, Finset.mem_singleton] at hp_in
   exact hp_in
-

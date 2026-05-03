@@ -1,4 +1,4 @@
-import FunctionDefinition
+import TRC_FunctionWithInvariant
 import HelperLemmas
 
 -- ============================================================
@@ -159,16 +159,16 @@ lemma applyMove_pieces {n : Nat} (b : Board n) (src dst p : Pos n) :
     · simp [h2]
     · simp [h1, h2]
 
--- After applying nextWhiteMove, the white king sits on column 0. In
+-- After applying ladderStep, the white king sits on column 0. In
 -- every phase the king either stays on its starting square (kingPos has
 -- column 0) or moves from (rank, 0) to (rank+1, 0); both are column 0.
 lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (lsh : LadderShape board rank φ) :
-    let move := nextWhiteMove lsh
+    let move := ladderStep lsh
     let b'   := applyMove board move.1 move.2
     ∀ pw, b' pw = some ⟨.White, .King⟩ → pw.file.val = 0 := by
-  show ∀ pw, (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2) pw
+  show ∀ pw, (applyMove board (ladderStep lsh).1 (ladderStep lsh).2) pw
               = some ⟨.White, .King⟩ → pw.file.val = 0
   intro pw hpw
   obtain ⟨_, hK_at, hRb_at, hRa_at, white_pos, _, _, _⟩ := lsh.unfold
@@ -185,36 +185,36 @@ lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
     · rw [h, hRa_at] at hb; simp at hb
   cases φ
   case moveRb =>
-    by_cases h1 : pw = (nextWhiteMove lsh).2
+    by_cases h1 : pw = (ladderStep lsh).2
     · -- pw = dst forces b src = WK, but src = rookBPos has WR.
       rw [if_pos h1,
-          show (nextWhiteMove lsh).1 = rookBPos rank .moveRb hbnd from rfl,
+          show (ladderStep lsh).1 = rookBPos rank .moveRb hbnd from rfl,
           hRb_at] at hpw
       simp at hpw
     · rw [if_neg h1] at hpw
-      by_cases h2 : pw = (nextWhiteMove lsh).1
+      by_cases h2 : pw = (ladderStep lsh).1
       · rw [if_pos h2] at hpw; simp at hpw
       · rw [if_neg h2] at hpw; exact unchanged_case hpw
   case moveRa =>
-    by_cases h1 : pw = (nextWhiteMove lsh).2
+    by_cases h1 : pw = (ladderStep lsh).2
     · rw [if_pos h1,
-          show (nextWhiteMove lsh).1 = rookAPos rank .moveRa hbnd from rfl,
+          show (ladderStep lsh).1 = rookAPos rank .moveRa hbnd from rfl,
           hRa_at] at hpw
       simp at hpw
     · rw [if_neg h1] at hpw
-      by_cases h2 : pw = (nextWhiteMove lsh).1
+      by_cases h2 : pw = (ladderStep lsh).1
       · rw [if_pos h2] at hpw; simp at hpw
       · rw [if_neg h2] at hpw; exact unchanged_case hpw
   case moveK =>
     -- src = K = (rank, 0), dst = (rank+1, 0); both at column 0.
-    by_cases h1 : pw = (nextWhiteMove lsh).2
+    by_cases h1 : pw = (ladderStep lsh).2
     · rw [h1]; rfl
     · rw [if_neg h1] at hpw
-      by_cases h2 : pw = (nextWhiteMove lsh).1
+      by_cases h2 : pw = (ladderStep lsh).1
       · rw [if_pos h2] at hpw; simp at hpw
       · rw [if_neg h2] at hpw; exact unchanged_case hpw
 
--- After applying nextWhiteMove, every (white-king, black-king) pair is
+-- After applying ladderStep, every (white-king, black-king) pair is
 -- separated by at least two files. Combines `LadderMove_WhiteKingCol0`
 -- (white king column = 0) with the `LadderShape` invariant on the black
 -- king's column (≥ 2), which is preserved because white moves don't
@@ -222,16 +222,16 @@ lemma LadderMove_WhiteKingCol0 {n : Nat} {board : Board n}
 lemma LadderMove_KingsApart {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (ladder_shape : LadderShape board rank φ) :
-    let move := nextWhiteMove ladder_shape
+    let move := ladderStep ladder_shape
     let b'   := applyMove board move.1 move.2
     ∀ pw pb : Pos n,
       (b' pw = some ⟨.White, .King⟩ ∧ b' pb = some ⟨.Black, .King⟩) →
       pw.file.val + 2 ≤ pb.file.val := by
   show ∀ pw pb : Pos n,
-    ((applyMove board (nextWhiteMove ladder_shape).1
-        (nextWhiteMove ladder_shape).2) pw = some ⟨.White, .King⟩ ∧
-     (applyMove board (nextWhiteMove ladder_shape).1
-        (nextWhiteMove ladder_shape).2) pb = some ⟨.Black, .King⟩) →
+    ((applyMove board (ladderStep ladder_shape).1
+        (ladderStep ladder_shape).2) pw = some ⟨.White, .King⟩ ∧
+     (applyMove board (ladderStep ladder_shape).1
+        (ladderStep ladder_shape).2) pb = some ⟨.Black, .King⟩) →
     pw.file.val + 2 ≤ pb.file.val
   intro pw pb ⟨hpw, hpb⟩
   obtain ⟨_, hK_at, hRb_at, hRa_at, _, black_loc, _, _⟩ := ladder_shape.unfold
@@ -239,7 +239,7 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
   -- src always carries some white piece (rook in moveRb/moveRa, king in moveK),
   -- so pb cannot equal dst (would force b src = ⟨Black, King⟩).
   have h_src_white :
-      ∃ k, board (nextWhiteMove ladder_shape).1 = some ⟨.White, k⟩ := by
+      ∃ k, board (ladderStep ladder_shape).1 = some ⟨.White, k⟩ := by
     cases φ
     · exact ⟨.Rook, hRb_at⟩
     · exact ⟨.Rook, hRa_at⟩
@@ -247,12 +247,12 @@ lemma LadderMove_KingsApart {n : Nat} {board : Board n}
   -- Black king's square is unchanged: a white move into an empty target
   -- doesn't relocate black pieces.
   have hb_pb : board pb = some ⟨.Black, .King⟩ := by
-    by_cases h1 : pb = (nextWhiteMove ladder_shape).2
+    by_cases h1 : pb = (ladderStep ladder_shape).2
     · rw [if_pos h1] at hpb
       obtain ⟨_, hk⟩ := h_src_white
       rw [hk] at hpb; simp at hpb
     · rw [if_neg h1] at hpb
-      by_cases h2 : pb = (nextWhiteMove ladder_shape).1
+      by_cases h2 : pb = (ladderStep ladder_shape).1
       · rw [if_pos h2] at hpb; simp at hpb
       · rw [if_neg h2] at hpb; exact hpb
   have h_pw_col : pw.file.val = 0 := LadderMove_WhiteKingCol0 ladder_shape pw hpw
@@ -305,12 +305,12 @@ lemma LadderShape.moveK_hRoom {n : Nat} {board : Board n} {rank : Fin n}
 
 lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
     {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
-    let dst := (nextWhiteMove ladder_shape).2
+    let dst := (ladderStep ladder_shape).2
     board dst = none := by
-  show board (nextWhiteMove ladder_shape).2 = none
+  show board (ladderStep ladder_shape).2 = none
   apply ladder_shape.empty_at
-  · -- dst.2.val < 2 — by inspection of nextWhiteMove (column is 0 or 1).
-    cases φ <;> simp [nextWhiteMove, rookBPos, rookAPos]
+  · -- dst.2.val < 2 — by inspection of ladderStep (column is 0 or 1).
+    cases φ <;> simp [ladderStep, rookBPos, rookAPos]
   all_goals
     -- Three remaining goals are inequalities of the form dst ≠ piecePos.
     -- For each phase, dst differs from the piece on at least one component
@@ -320,21 +320,21 @@ lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
     have h1 := congrArg (fun x : Pos n => x.rank.val) heq
     have h2 := congrArg (fun x : Pos n => x.file.val) heq
     cases φ <;>
-      simp [nextWhiteMove, kingPos, rookBPos, rookAPos] at h1 h2
+      simp [ladderStep, kingPos, rookBPos, rookAPos] at h1 h2
 
 
 
--- after applying nextWhiteMove, every black-occupied square is still a
+-- after applying ladderStep, every black-occupied square is still a
 -- black king. Specialisation of `applyMove_PreservesOnlyBlackKing` to the
 -- ladder move; the only-black-king clause is part of `LadderShape`.
 lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (ladder_shape : LadderShape board rank φ) :
-    let move := nextWhiteMove ladder_shape
+    let move := ladderStep ladder_shape
     let b'   := applyMove board move.1 move.2
     ∀ p k, b' p = some ⟨.Black, k⟩ → k = .King := by
-  show ∀ p k, (applyMove board (nextWhiteMove ladder_shape).1
-                (nextWhiteMove ladder_shape).2) p = some ⟨.Black, k⟩ → k = .King
+  show ∀ p k, (applyMove board (ladderStep ladder_shape).1
+                (ladderStep ladder_shape).2) p = some ⟨.Black, k⟩ → k = .King
   obtain ⟨_, _, _, _, _, _, only_bk, _⟩ := ladder_shape.unfold
   exact applyMove_PreservesOnlyBlackKing board _ _ only_bk
 
@@ -347,10 +347,10 @@ lemma LadderMove_PreservesOnlyBlackKing {n : Nat} {board : Board n}
 lemma LadderMove_LegalIfMoveValid {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
     (piece : PieceType)
-    (h_at_src : board (nextWhiteMove lsh).1 = some ⟨board.turn, piece⟩)
+    (h_at_src : board (ladderStep lsh).1 = some ⟨board.turn, piece⟩)
     (h_valid  : PieceMoveLogic board
-                  (nextWhiteMove lsh).1 (nextWhiteMove lsh).2 piece) :
-    IsLegalMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2 := by
+                  (ladderStep lsh).1 (ladderStep lsh).2 piece) :
+    IsLegalMove board (ladderStep lsh).1 (ladderStep lsh).2 := by
   have dst_empty   := LadderMove_IntoEmptySquare lsh
   have b'_only_bk  := LadderMove_PreservesOnlyBlackKing lsh
   have b'_apart    := LadderMove_KingsApart lsh
@@ -361,7 +361,7 @@ lemma LadderMove_LegalIfMoveValid {n : Nat} {board : Board n}
   · exact (NoCaputureMove_PreservesKings _ _ _ legal_start dst_empty).2
   · -- `applyMove` flips the turn, so the opponent is White.
     have heq :
-        (applyMove board (nextWhiteMove lsh).1 (nextWhiteMove lsh).2).turn.opponent
+        (applyMove board (ladderStep lsh).1 (ladderStep lsh).2).turn.opponent
           = .White := by
       show board.turn.opponent.opponent = .White
       rw [turn_white]; rfl
@@ -372,11 +372,11 @@ lemma LadderMove_LegalIfMoveValid {n : Nat} {board : Board n}
 -- ============================================================
 -- MAIN THEOREM
 -- ============================================================
-theorem nextWhiteMove_isLegal {n : Nat} {board : Board n}
+theorem ladderStep_isLegal {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
     (lsh : LadderShape board rank φ) :
     IsLegalMove board
-      (nextWhiteMove lsh).1 (nextWhiteMove lsh).2 := by
+      (ladderStep lsh).1 (ladderStep lsh).2 := by
   have dst_empty := LadderMove_IntoEmptySquare lsh
   obtain ⟨turn_white, hK, hRb, hRa, _, _, _, _⟩ := lsh.unfold
   cases φ with

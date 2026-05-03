@@ -1,6 +1,6 @@
 name = "hello_world"
 version = "0.1.0"
-defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "FunctionDefinition", "TwoRookLadderMateTests", "NextWhiteMoveIsLegal", "Preservation"]
+defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TRC_FunctionWithInvariant", "TwoRookLadderMateTests", "NextWhiteMoveIsLegal", "Preservation"]
 
 [[require]]
 name = "mathlib"
@@ -28,7 +28,27 @@ name = "TwoKingNoCheckmate"
 srcDir = "Chess/proofs"
 
 [[lean_lib]]
-name = "FunctionDefinition"
+name = "TRC_FunctionWithInvariant"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_Invariant_SimpleCases"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_Invariant_PieceLocations"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_Q_Lemma"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_Invariant_BlackEmpty"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_Invariant_Preservation.lean"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
@@ -43,6 +63,3 @@ srcDir = "Chess/proofs/two_rook_ladder_mate"
 name = "NextWhiteMoveIsLegal"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
-[[lean_lib]]
-name = "Preservation"
-srcDir = "Chess/proofs/two_rook_ladder_mate"

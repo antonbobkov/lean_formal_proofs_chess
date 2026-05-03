@@ -1,5 +1,5 @@
 import ChessRules
-import FunctionDefinition
+import TRC_FunctionWithInvariant
 
 -- ============================================================
 -- SANITY TESTS for Two-Rook Ladder Mate
@@ -64,22 +64,22 @@ private def boardRbShifted : Board 8 where
 
 
 -- The move function returns the expected (src, dst) for each phase.
-#guard nextWhiteMove (rank := (0 : Fin 8)) (φ := .moveRb)
+#guard ladderStep (rank := (0 : Fin 8)) (φ := .moveRb)
         (by decide : LadderShape boardRb (0 : Fin 8) .moveRb)
        == (sq8 0 1, sq8 1 1)
 
-#guard nextWhiteMove (rank := (0 : Fin 8)) (φ := .moveRa)
+#guard ladderStep (rank := (0 : Fin 8)) (φ := .moveRa)
         (by decide : LadderShape boardRa (0 : Fin 8) .moveRa)
        == (sq8 1 0, sq8 2 0)
 
-#guard nextWhiteMove (rank := (0 : Fin 8)) (φ := .moveK)
+#guard ladderStep (rank := (0 : Fin 8)) (φ := .moveK)
         (by decide : LadderShape boardK (0 : Fin 8) .moveK)
        == (sq8 0 0, sq8 1 0)
 
 
 -- Three plies starting from `boardRb` reach `boardRbShifted`.
 private def afterCycle : Board 8 :=
-  let b1 := ladderStep (board := boardRb) (rank := (0 : Fin 8)) (φ := .moveRb)
+  let b1 := applyLadderStep (board := boardRb) (rank := (0 : Fin 8)) (φ := .moveRb)
               (by decide)
   -- Black "passes" by recording a non-move; but `applyMove` flips turn,
   -- so we manually flip the turn back to White to feed the next ladder
@@ -87,10 +87,10 @@ private def afterCycle : Board 8 :=
   -- check we use the all-White trajectory and only inspect piece
   -- positions, not turns.)
   let b1w : Board 8 := { b1 with turn := .White }
-  let b2 := ladderStep (board := b1w) (rank := (0 : Fin 8)) (φ := .moveRa)
+  let b2 := applyLadderStep (board := b1w) (rank := (0 : Fin 8)) (φ := .moveRa)
               (by decide)
   let b2w : Board 8 := { b2 with turn := .White }
-  let b3 := ladderStep (board := b2w) (rank := (0 : Fin 8)) (φ := .moveK)
+  let b3 := applyLadderStep (board := b2w) (rank := (0 : Fin 8)) (φ := .moveK)
               (by decide)
   b3
 
