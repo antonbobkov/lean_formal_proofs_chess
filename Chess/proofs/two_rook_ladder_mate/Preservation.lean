@@ -478,14 +478,7 @@ lemma LadderMove_WhiteKingAttacks_FileOneRaRank {n : Nat} {board : Board n}
     · rw [hwk_eq, hRb_at] at hwk; simp at hwk
     · rw [hwk_eq, hRa_at] at hwk; simp at hwk
   | moveK =>
-    -- Same hRoom derivation as in LadderMove_OnlyFileOneRaRank_InRegion.
-    obtain ⟨_, _, _, _, _, black_loc, _, _, ⟨bp, hbp, _⟩, _⟩ := lsh.unfold
-    have hRoom : rank.val + 3 < n := by
-      have hb := black_loc bp hbp
-      have hRa : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
-        simp [rookAPos]
-      have : bp.rank.val < n := bp.rank.isLt
-      omega
+    have hRoom := lsh.moveK_hRoom
     obtain ⟨_, hRb_at, hRa_at⟩ := LadderStep_PiecesAt_moveK lsh hRoom
     rcases LadderStep_QPart_moveK lsh hRoom wk ⟨.King, hwk⟩ with hwk_eq | hwk_eq | hwk_eq
     · rw [hwk_eq]
@@ -547,17 +540,8 @@ lemma LadderMove_OnlyFileOneRaRank_InRegion {n : Nat} {board : Board n}
     -- Post-step white pieces at (rank+1, 0), (rank+1, 1), (rank+2, 0).
     -- The region is (file ≥ 1, rank ≥ rank+2): rookB has rank rank+1 (fails
     -- the rank bound), the king and rookA have file 0 (fail the file bound).
-    -- So the conclusion is vacuously true. To invoke `LadderStep_QPart_moveK`
-    -- we need `rank.val + 3 < n`; that's derivable here, since the black king
-    -- exists (IsLegalSetup) with rank > rookAPos.rank = rank+2, and Fin n
-    -- bounds it below n.
-    obtain ⟨_, _, _, _, _, black_loc, _, _, ⟨bp, hbp, _⟩, _⟩ := lsh.unfold
-    have hRoom : rank.val + 3 < n := by
-      have hb := black_loc bp hbp
-      have hRa : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
-        simp [rookAPos]
-      have hbp_lt : bp.rank.val < n := bp.rank.isLt
-      omega
+    -- So the conclusion is vacuously true.
+    have hRoom := lsh.moveK_hRoom
     rcases LadderStep_QPart_moveK lsh hRoom p hwhite with hp | hp | hp
     · rw [hp] at hfile; simp [kingPos] at hfile
     · rw [hp] at hrank; simp [rookBPos, rookAPos] at hrank

@@ -288,6 +288,21 @@ lemma LadderShape.empty_at {n : Nat} {board : Board n} {rank : Fin n}
       · exact hRb h
       · exact hRa h
 
+-- For φ = moveK, the bound `rank.val + 3 < n` is automatic — it doesn't
+-- need to be a separate hypothesis. `IsLegalSetup` guarantees a black
+-- king exists, the `black_loc` invariant forces its rank above
+-- `rookAPos.rank = rank + 2`, and Fin n bounds the king's rank below
+-- n. Combining: rank + 3 ≤ bp.rank.val < n.
+lemma LadderShape.moveK_hRoom {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveK) :
+    rank.val + 3 < n := by
+  obtain ⟨_, _, _, _, _, black_loc, _, _, ⟨bp, hbp, _⟩, _⟩ := lsh.unfold
+  have hb := black_loc bp hbp
+  have hRa : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
+    simp [rookAPos]
+  have : bp.rank.val < n := bp.rank.isLt
+  omega
+
 lemma LadderMove_IntoEmptySquare {n : Nat} {board : Board n} {rank : Fin n}
     {φ : LadderPhase} (ladder_shape : LadderShape board rank φ) :
     let dst := (nextWhiteMove ladder_shape).2
