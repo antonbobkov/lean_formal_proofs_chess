@@ -662,10 +662,7 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
   have h_legal   := LadderShape_LegalSetupPreserved lsh black_move
   have h_only_bk := LadderShape_OnlyBlackKingPreserved lsh bsrc bdst
   have hbsrc     := blackMove_src_isBlack lsh black_move
-  -- Black's reply might capture a white piece; ruling that out is
-  -- future work. Until then, white-piece preservation borrows it as
-  -- an assumption.
-  have bdst_empty : (ladderStep lsh) bdst = none := sorry
+  have bdst_empty := BlackReply_DstEmpty lsh black_move
   have h_card := whiteCount_le_three_after_cycle (bsrc := bsrc) lsh bdst_empty
   cases φ with
   | moveRb =>
