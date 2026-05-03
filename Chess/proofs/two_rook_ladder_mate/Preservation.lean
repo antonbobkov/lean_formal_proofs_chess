@@ -477,7 +477,40 @@ lemma LadderMove_OnlyFileOneRaRank_InRegion {n : Nat} {board : Board n}
          (∃ k, (ladderStep lsh) p = some ⟨.White, k⟩) →
          p.file.val = 1 ∧
          p.rank.val = (rookAPos rank φ lsh.hRfits).rank.val := by
-  sorry
+  intro p hfile hrank hwhite
+  cases φ with
+  | moveRb =>
+    -- Post-step white pieces sit at (rank, 0), (rank+1, 1), (rank+1, 0).
+    -- Only (rank+1, 1) has file ≥ 1 — the king's and rookA's files are 0.
+    rcases LadderStep_QPart_moveRb lsh p hwhite with hp | hp | hp
+    · rw [hp] at hfile; simp [kingPos] at hfile
+    · rw [hp]; exact ⟨by simp [rookBPos], by simp [rookBPos, rookAPos]⟩
+    · rw [hp] at hfile; simp [rookAPos] at hfile
+  | moveRa =>
+    -- Same shape as moveRb (Rb post-step is at the same square).
+    rcases LadderStep_QPart_moveRa lsh p hwhite with hp | hp | hp
+    · rw [hp] at hfile; simp [kingPos] at hfile
+    · rw [hp]; exact ⟨by simp [rookBPos], by simp [rookBPos, rookAPos]⟩
+    · rw [hp] at hfile; simp [rookAPos] at hfile
+  | moveK =>
+    -- Post-step white pieces at (rank+1, 0), (rank+1, 1), (rank+2, 0).
+    -- The region is (file ≥ 1, rank ≥ rank+2): rookB has rank rank+1 (fails
+    -- the rank bound), the king and rookA have file 0 (fail the file bound).
+    -- So the conclusion is vacuously true. To invoke `LadderStep_QPart_moveK`
+    -- we need `rank.val + 3 < n`; that's derivable here, since the black king
+    -- exists (IsLegalSetup) with rank > rookAPos.rank = rank+2, and Fin n
+    -- bounds it below n.
+    obtain ⟨_, _, _, _, _, black_loc, _, _, ⟨bp, hbp, _⟩, _⟩ := lsh.unfold
+    have hRoom : rank.val + 3 < n := by
+      have hb := black_loc bp hbp
+      have hRa : (rookAPos rank .moveK lsh.hRfits).rank.val = rank.val + 2 := by
+        simp [rookAPos]
+      have hbp_lt : bp.rank.val < n := bp.rank.isLt
+      omega
+    rcases LadderStep_QPart_moveK lsh hRoom p hwhite with hp | hp | hp
+    · rw [hp] at hfile; simp [kingPos] at hfile
+    · rw [hp] at hrank; simp [rookBPos, rookAPos] at hrank
+    · rw [hp] at hfile; simp [rookAPos] at hfile
 
 -- Corollary of (ii)+(iii)+(iv): a legal Black reply's destination
 -- carries no white piece on the step board.
