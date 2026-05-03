@@ -49,7 +49,14 @@ lemma LadderMove_NoWhiteRightOfRb_moveRb {n : Nat} {board : Board n}
     {rank : Fin n} (lsh : LadderShape board rank .moveRb) :
     ∀ p k, p.rank.val = rank.val + 1 → 1 < p.file.val →
            (applyLadderStep lsh) p ≠ some ⟨.White, k⟩ := by
-  sorry
+  intro p k hpr hpf hp
+  rcases applyLadderStep_QPart_moveRb lsh p ⟨k, hp⟩ with hp_eq | hp_eq | hp_eq
+  · have : p.rank.val = rank.val := by rw [hp_eq]; simp [kingPos]
+    omega
+  · have : p.file.val = 1 := by rw [hp_eq]; simp [rookBPos]
+    omega
+  · have : p.file.val = 0 := by rw [hp_eq]; simp [rookAPos]
+    omega
 
 -- (4) Phase moveRa (Ra → K): after Ra's ply, no white piece sits to
 -- the right of the post-step Ra rook. Post-step Ra is at (rank+2, 0);
