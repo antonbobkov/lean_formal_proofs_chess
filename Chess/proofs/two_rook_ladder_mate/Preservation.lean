@@ -158,6 +158,53 @@ lemma LadderStep_PiecesAt_moveK {n : Nat} {board : Board n} {rank : Fin n}
 
 
 -- ------------------------------------------------------------
+-- Q ON THE STEP BOARD
+-- ------------------------------------------------------------
+-- Companions to `LadderStep_PiecesAt_*`: not only do the three named
+-- squares carry white pieces after White's ply, those are the *only*
+-- squares carrying white pieces. Recovered from the input Q via the
+-- counting machinery — `whiteCount_le_three_after_step` for the count
+-- bound and the `LadderStep_PiecesAt_*` triple plus
+-- `ladderPos_pairwise_distinct` for the saturating subset, fed into
+-- `Q_of_subset_card_le`.
+--
+-- Like `LadderStep_PiecesAt_*`, the three squares are phase-dependent
+-- (they are the next state's named positions), so this is split into
+-- one lemma per input phase.
+
+lemma LadderStep_QPart_moveRb {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRb) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank h ∨
+         p = rookBPos rank .moveRa h ∨
+         p = rookAPos rank .moveRa h := by
+  sorry
+
+lemma LadderStep_QPart_moveRa {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveRa) :
+    let h := lsh.hRfits
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank h ∨
+         p = rookBPos rank .moveK h ∨
+         p = rookAPos rank .moveK h := by
+  sorry
+
+lemma LadderStep_QPart_moveK {n : Nat} {board : Board n} {rank : Fin n}
+    (lsh : LadderShape board rank .moveK) (hRoom : rank.val + 3 < n) :
+    let rank' : Fin n := ⟨rank.val + 1, by omega⟩
+    let h' : rank'.val + 2 < n := hRoom
+    let b' := ladderStep lsh
+    ∀ p, (∃ k, b' p = some ⟨.White, k⟩) →
+         p = kingPos rank' h' ∨
+         p = rookBPos rank' .moveRb h' ∨
+         p = rookAPos rank' .moveRb h' := by
+  sorry
+
+
+-- ------------------------------------------------------------
 -- HELPERS FOR WHITE-PIECE PRESERVATION
 -- ------------------------------------------------------------
 -- Used inline by `LadderShape.preservation` (the per-phase plumbing
@@ -362,10 +409,9 @@ lemma BlackReply_NotAtFileOneRaRank {n : Nat} {board : Board n}
 -- there is no White piece in the region at all, so the conclusion is
 -- vacuous.
 --
--- Note: the proof needs Q on the step board — recover it via
--- `Q_of_subset_card_le` using the three `LadderStep_PiecesAt_*`
--- squares as the witnesses and `whiteCount_le_three_after_step` as
--- the count bound.
+-- Note: the proof case-splits on φ and dispatches to the
+-- corresponding `LadderStep_QPart_*` lemma (Q on the step board for
+-- that phase) to enumerate the three candidate white squares.
 lemma LadderMove_OnlyFileOneRaRank_InRegion {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ) :
     ∀ p, 1 ≤ p.file.val →
