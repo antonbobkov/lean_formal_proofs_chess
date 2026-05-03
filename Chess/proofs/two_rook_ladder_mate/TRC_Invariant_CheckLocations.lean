@@ -106,7 +106,54 @@ lemma LadderMove_BlackInCheck_AboveRaRank_FileOne {n : Nat} {board : Board n}
           kp.file.val = 1 →
           (rookAPos rank φ lsh.hRfits).rank.val < kp.rank.val →
           IsCheck (applyLadderStep lsh) .Black := by
-  sorry
+  intro kp hkp hkp_file hkp_rank
+  -- A uniform witness for the post-step Rb position. In every phase Rb
+  -- sits at (rank+1, 1) on the step board, but the formal name of that
+  -- square is phase-dependent — so we package it once here.
+  obtain ⟨rp, hRb_at, hRb_rank, hRb_file⟩ :
+      ∃ rp : Pos n,
+        (applyLadderStep lsh) rp = some ⟨.White, .Rook⟩ ∧
+        rp.rank.val = rank.val + 1 ∧
+        rp.file.val = 1 := by
+    cases φ with
+    | moveRb =>
+      refine ⟨rookBPos rank .moveRa lsh.hRfits, ?_, ?_, ?_⟩
+      · exact (applyLadderStep_PiecesAt_moveRb lsh).2.1
+      · simp [rookBPos]
+      · simp [rookBPos]
+    | moveRa =>
+      refine ⟨rookBPos rank .moveK lsh.hRfits, ?_, ?_, ?_⟩
+      · exact (applyLadderStep_PiecesAt_moveRa lsh).2.1
+      · simp [rookBPos]
+      · simp [rookBPos]
+    | moveK =>
+      have hRoom := lsh.moveK_hRoom
+      refine ⟨rookBPos ⟨rank.val + 1, by omega⟩ .moveRb hRoom, ?_, ?_, ?_⟩
+      · exact (applyLadderStep_PiecesAt_moveK lsh hRoom).2.1
+      · simp [rookBPos]
+      · simp [rookBPos]
+  have hpreRa_rank_ge :
+      rank.val + 1 ≤ (rookAPos rank φ lsh.hRfits).rank.val := by
+    cases φ <;> simp [rookAPos]
+  have only_bk := LadderMove_PreservesOnlyBlackKing lsh
+  obtain ⟨_, _, _, _, h_step_legal⟩ := ladderStep_isLegal lsh
+  obtain ⟨_, ⟨_, _, hbk_uniq⟩, _⟩ := h_step_legal
+  have unique_bk : ∀ p,
+      (applyLadderStep lsh) p = some ⟨.Black, .King⟩ → p = kp := fun p hp =>
+    (hbk_uniq p hp).trans (hbk_uniq kp hkp).symm
+  have no_white_above :
+      ∀ p k, p.file = rp.file → rp.rank.val < p.rank.val →
+             (applyLadderStep lsh) p ≠ some ⟨.White, k⟩ := by
+    intro p k hpf hpr
+    apply LadderMove_NoWhiteAboveRb lsh p k
+    · have := congrArg Fin.val hpf; rw [hRb_file] at this; exact this
+    · rw [hRb_rank] at hpr; exact hpr
+  have same_file : kp.file = rp.file := by
+    apply Fin.ext; rw [hRb_file]; exact hkp_file
+  have king_above : rp.rank.val < kp.rank.val := by
+    rw [hRb_rank]; omega
+  exact RookCheckUp (applyLadderStep lsh) rp kp hRb_at hkp only_bk unique_bk
+    no_white_above same_file king_above
 
 -- Phase moveRa (Ra → K): on the step board, a black king at
 -- (rank = Ra.rank + 1, file ≥ 2) is in check. Post-step Ra sits at
