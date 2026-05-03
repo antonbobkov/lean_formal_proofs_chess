@@ -242,17 +242,17 @@ private lemma ladderPos_pairwise_distinct {n : Nat} (rank : Fin n) (φ : LadderP
     have := congrArg (fun p : Pos n => p.file.val) heq
     cases φ <;> simp [rookBPos, rookAPos] at this
 
--- Across one full White+Black cycle the count of white-occupied
--- squares is unchanged: the white ply targets an empty square
--- (`LadderMove_IntoEmptySquare`) and the black ply also targets an
--- empty square (`bdst_empty`), so neither move drops a piece on top
--- of an existing white-occupied square. Combined with the input Q,
--- this gives the `≤ 3` bound on the output board's white squares.
-private lemma whiteCount_le_three_after_cycle {n : Nat} {board : Board n}
+-- After White's ladder ply the count of white-occupied squares is
+-- unchanged: the ply targets an empty square (`LadderMove_IntoEmptySquare`),
+-- so it doesn't drop a piece on top of an existing white-occupied square.
+-- Combined with the input Q, this gives the `≤ 3` bound on the step
+-- board's white squares — the seed needed to recover Q on the step
+-- board (used both by the full-cycle bound below and by
+-- `LadderMove_OnlyFileOneRaRank_InRegion`).
+private lemma whiteCount_le_three_after_step {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase}
-    (lsh : LadderShape board rank φ) {bsrc bdst : Pos n}
-    (bdst_empty : (ladderStep lsh) bdst = none) :
-    (colorSquares (applyMove (ladderStep lsh) bsrc bdst) .White).card ≤ 3 := by
+    (lsh : LadderShape board rank φ) :
+    (colorSquares (ladderStep lsh) .White).card ≤ 3 := by
   obtain ⟨_, _, _, _, hQ, _, _, _⟩ := lsh.unfold
   have h_init : (colorSquares board .White).card ≤ 3 :=
     colorSquares_card_le_three_of_Q board .White hQ
@@ -261,12 +261,139 @@ private lemma whiteCount_le_three_after_cycle {n : Nat} {board : Board n}
     colorSquares_card_eq_nonCapture board .White
       (nextWhiteMove lsh).1 (nextWhiteMove lsh).2
       (LadderMove_IntoEmptySquare lsh)
+  omega
+
+-- Extends `whiteCount_le_three_after_step` across the Black ply: the
+-- black ply also targets an empty square (`bdst_empty`), so the count
+-- is preserved a second time.
+private lemma whiteCount_le_three_after_cycle {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase}
+    (lsh : LadderShape board rank φ) {bsrc bdst : Pos n}
+    (bdst_empty : (ladderStep lsh) bdst = none) :
+    (colorSquares (applyMove (ladderStep lsh) bsrc bdst) .White).card ≤ 3 := by
+  have h_step := whiteCount_le_three_after_step lsh
   have h_black_ply :
       (colorSquares (applyMove (ladderStep lsh) bsrc bdst) .White).card =
       (colorSquares (ladderStep lsh) .White).card :=
     colorSquares_card_eq_nonCapture (ladderStep lsh) .White
       bsrc bdst bdst_empty
   omega
+
+
+-- ------------------------------------------------------------
+-- BLACK REPLY TARGETS AN EMPTY SQUARE
+-- ------------------------------------------------------------
+-- Closes the `bdst_empty` hypothesis used inside `LadderShape.preservation`
+-- (currently `sorry`'d). The argument chains four facts about the step
+-- board (the board after White's ladder ply):
+--
+--   (i)   The (unique) black king still has file ≥ 2 and rank strictly
+--         greater than `rookAPos rank φ` — White's ply moves into an
+--         empty square (`LadderMove_IntoEmptySquare`), so it doesn't
+--         relocate the black king, and the file/rank bounds carry over
+--         from `LadderShape_KingsApart` and the `black_loc` conjunct.
+--   (ii)  A legal Black king reply moves at most one square in each
+--         coordinate, so its destination has file ≥ 1 and
+--         rank ≥ rookAPos.rank.
+--   (iii) The square at (file = 1, rank = rookAPos.rank) is attacked
+--         by the White king on the step board in every phase, so a
+--         legal Black reply cannot land there (it would leave Black
+--         in check).
+--   (iv)  The only White piece on the step board sitting at
+--         (file ≥ 1, rank ≥ rookAPos.rank) is at (file = 1,
+--         rank = rookAPos.rank). For phases moveRb / moveRa this is
+--         the post-step rookB square; for phase moveK no white piece
+--         lies in the region at all (vacuous). Proving this needs Q
+--         transported through White's ply (via the same
+--         `colorSquares_card_eq_nonCapture` /  `Q_of_subset_card_le`
+--         machinery used by `whiteCount_le_three_after_cycle`).
+--
+-- (ii)+(iii)+(iv) together say `bdst` carries no white piece on the
+-- step board; combined with "only black piece is the king, sitting at
+-- bsrc ≠ bdst", this gives `bdst` is empty.
+
+-- (i) The black king's square on the step board has file ≥ 2 and
+-- rank > rookAPos.rank.
+lemma LadderMove_BlackKing_FarFromRa {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ) :
+    ∀ bp, (ladderStep lsh) bp = some ⟨.Black, .King⟩ →
+          2 ≤ bp.file.val ∧
+          (rookAPos rank φ lsh.hRfits).rank.val < bp.rank.val := by
+  sorry
+
+-- (ii) After any legal Black king reply on the step board, the
+-- destination has file ≥ 1 and rank ≥ rookAPos.rank.
+lemma BlackReply_DstBounds {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    1 ≤ bdst.file.val ∧
+    (rookAPos rank φ lsh.hRfits).rank.val ≤ bdst.rank.val := by
+  sorry
+
+-- (iii) On the step board, the White king attacks the square at
+-- (file = 1, rank = rookAPos.rank). Pure phase-by-phase check: the
+-- White king sits one step diagonally below this square in moveRb /
+-- moveRa, and one step left of it in moveK (after the King's own ply
+-- has advanced by one rank).
+lemma LadderMove_WhiteKingAttacks_FileOneRaRank {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ) :
+    ∀ wk q, (ladderStep lsh) wk = some ⟨.White, .King⟩ →
+            q.file.val = 1 →
+            q.rank.val = (rookAPos rank φ lsh.hRfits).rank.val →
+            ValidKingMove wk q := by
+  sorry
+
+-- Corollary of (iii): a legal Black reply cannot land on the
+-- (file = 1, rank = rookAPos.rank) square — going there would leave
+-- the Black king attacked by the protecting White king and thus
+-- violate `IsLegalSetup` (¬ IsCheck Black) on the post-reply board.
+lemma BlackReply_NotAtFileOneRaRank {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    ¬ (bdst.file.val = 1 ∧
+       bdst.rank.val = (rookAPos rank φ lsh.hRfits).rank.val) := by
+  sorry
+
+-- (iv) On the step board, any White piece at file ≥ 1 and
+-- rank ≥ rookAPos.rank sits at exactly (file = 1, rank = rookAPos.rank).
+-- For moveRb / moveRa this is the (post-step) rookB square; for moveK
+-- there is no White piece in the region at all, so the conclusion is
+-- vacuous.
+--
+-- Note: the proof needs Q on the step board — recover it via
+-- `Q_of_subset_card_le` using the three `LadderStep_PiecesAt_*`
+-- squares as the witnesses and `whiteCount_le_three_after_step` as
+-- the count bound.
+lemma LadderMove_OnlyFileOneRaRank_InRegion {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ) :
+    ∀ p, 1 ≤ p.file.val →
+         (rookAPos rank φ lsh.hRfits).rank.val ≤ p.rank.val →
+         (∃ k, (ladderStep lsh) p = some ⟨.White, k⟩) →
+         p.file.val = 1 ∧
+         p.rank.val = (rookAPos rank φ lsh.hRfits).rank.val := by
+  sorry
+
+-- Corollary of (ii)+(iii)+(iv): a legal Black reply's destination
+-- carries no white piece on the step board.
+lemma BlackReply_DstNotWhite {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    ∀ k, (ladderStep lsh) bdst ≠ some ⟨.White, k⟩ := by
+  sorry
+
+-- Final: the destination is empty on the step board. Combines
+-- `BlackReply_DstNotWhite` with "any black piece on the step board is
+-- the (unique) black king, which sits at bsrc ≠ bdst", to rule out
+-- both colors at bdst.
+lemma BlackReply_DstEmpty {n : Nat} {board : Board n}
+    {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
+    {bsrc bdst : Pos n}
+    (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
+    (ladderStep lsh) bdst = none := by
+  sorry
 
 
 -- ------------------------------------------------------------
