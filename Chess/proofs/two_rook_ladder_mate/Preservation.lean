@@ -611,7 +611,31 @@ lemma BlackReply_DstEmpty {n : Nat} {board : Board n}
     {bsrc bdst : Pos n}
     (black_move : IsLegalMove (ladderStep lsh) bsrc bdst) :
     (ladderStep lsh) bdst = none := by
-  sorry
+  rcases hb : (ladderStep lsh) bdst with _ | ⟨c, k⟩
+  · rfl
+  · exfalso
+    cases c with
+    | White => exact BlackReply_DstNotWhite lsh black_move k hb
+    | Black =>
+      -- bdst would carry the (unique) black king. But bsrc also carries the
+      -- black king (the moving piece). Uniqueness forces bsrc = bdst, which
+      -- contradicts ValidKingMove's src ≠ dst.
+      have hk : k = .King :=
+        LadderMove_PreservesOnlyBlackKing lsh bdst k hb
+      subst hk
+      obtain ⟨piece, hat_src, h_valid, _, _⟩ := black_move
+      obtain ⟨turn_white, _⟩ := lsh.unfold
+      have h_turn_step : (ladderStep lsh).turn = .Black := by
+        show board.turn.opponent = .Black
+        rw [turn_white]; rfl
+      rw [h_turn_step] at hat_src
+      have hp : piece = .King :=
+        LadderMove_PreservesOnlyBlackKing lsh bsrc piece hat_src
+      subst hp
+      change ValidKingMove bsrc bdst at h_valid
+      obtain ⟨_, _, _, _, h_step_legal⟩ := nextWhiteMove_isLegal lsh
+      obtain ⟨_, ⟨_, _, h_uniq⟩, _⟩ := h_step_legal
+      exact h_valid.1 ((h_uniq bsrc hat_src).trans (h_uniq bdst hb).symm)
 
 
 -- ------------------------------------------------------------
