@@ -1,6 +1,6 @@
 name = "hello_world"
 version = "0.1.0"
-defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TRC_FunctionWithInvariant", "TwoRookLadderMateTests", "NextWhiteMoveIsLegal", "TRC_Invariant_Preservation", "TRC_Invariant_CheckLocations"]
+defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TRC_FunctionWithInvariant", "TwoRookLadderMateTests", "LadderStepIsLegal", "TRC_Invariant_Preservation", "TRC_Invariant_CheckLocations"]
 
 [[require]]
 name = "mathlib"
@@ -56,14 +56,14 @@ name = "TRC_Invariant_CheckLocations"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
-name = "TwoRookLadderMateTests"
+name = "TRC_Tests"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
 name = "HelperLemmas"
-srcDir = "Chess/proofs/two_rook_ladder_mate"
+srcDir = "Chess/proofs/"
 
 [[lean_lib]]
-name = "NextWhiteMoveIsLegal"
+name = "LadderStepIsLegal"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 

@@ -5,7 +5,7 @@ import TRC_Invariant_PieceLocations
 import TRC_Q_Lemma
 import TRC_Invariant_BlackEmpty
 import HelperLemmas
-import NextWhiteMoveIsLegal
+import LadderStepIsLegal
 import Mathlib.Data.Finset.Card
 
 -- ============================================================

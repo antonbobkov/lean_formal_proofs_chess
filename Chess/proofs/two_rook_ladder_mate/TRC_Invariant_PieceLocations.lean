@@ -1,6 +1,6 @@
 import ChessRules
 import TRC_FunctionWithInvariant
-import NextWhiteMoveIsLegal
+import LadderStepIsLegal
 
 -- ------------------------------------------------------------
 -- WHITE-PIECE POSITIONS AFTER ONE LADDER PLY
