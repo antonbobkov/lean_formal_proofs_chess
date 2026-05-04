@@ -131,7 +131,24 @@ lemma RookCheckUp {n : Nat} (b : Board n)
     (same_file : kp.file = rp.file)
     (king_above : rp.rank.val < kp.rank.val) :
     IsCheck b .Black := by
-  sorry
+  refine ⟨kp, h_king, rp, .inl ⟨h_rook, ?_, .inr ⟨same_file.symm, ?_⟩⟩⟩
+  · intro heq
+    have : rp.rank.val = kp.rank.val := by rw [heq]
+    omega
+  · intro p hpfile hbet
+    unfold Between at hbet
+    have hp_above : rp.rank.val < p.rank.val := by omega
+    rcases hbp : b p with _ | ⟨c, kind⟩
+    · rfl
+    · exfalso
+      cases c with
+      | White => exact no_white_above p kind hpfile hp_above hbp
+      | Black =>
+        have hk : kind = .King := only_bk p kind hbp
+        subst hk
+        have hkp : p = kp := unique_bk p hbp
+        subst hkp
+        omega
 
 -- RR: rook gives check rightward. Same shape as `RookCheckUp` with the
 -- file/rank axes swapped: the rook and king share a rank, the king is at
@@ -148,7 +165,24 @@ lemma RookCheckRight {n : Nat} (b : Board n)
     (same_rank : kp.rank = rp.rank)
     (king_right : rp.file.val < kp.file.val) :
     IsCheck b .Black := by
-  sorry
+  refine ⟨kp, h_king, rp, .inl ⟨h_rook, ?_, .inl ⟨same_rank.symm, ?_⟩⟩⟩
+  · intro heq
+    have : rp.file.val = kp.file.val := by rw [heq]
+    omega
+  · intro p hprank hbet
+    unfold Between at hbet
+    have hp_right : rp.file.val < p.file.val := by omega
+    rcases hbp : b p with _ | ⟨c, kind⟩
+    · rfl
+    · exfalso
+      cases c with
+      | White => exact no_white_right p kind hprank hp_right hbp
+      | Black =>
+        have hk : kind = .King := only_bk p kind hbp
+        subst hk
+        have hkp : p = kp := unique_bk p hbp
+        subst hkp
+        omega
 
 -- an empty target square cannot be friendly-occupied, regardless of
 -- whose turn it is.
