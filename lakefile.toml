@@ -1,6 +1,6 @@
 name = "hello_world"
 version = "0.1.0"
-defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TRC_FunctionWithInvariant", "TwoRookLadderMateTests", "LadderStepIsLegal", "TRC_Invariant_Preservation", "TRC_Invariant_CheckLocations"]
+defaultTargets = ["ChessRules", "ChessTests", "BasicProofs", "HowManyRooks", "TwoKingNoCheckmate", "TRC_FunctionWithInvariant", "TwoRookLadderMateTests", "LadderStepIsLegal", "TRC_Invariant_Preservation", "TRC_Invariant_CheckLocations", "TRC_Invariant_KingRank"]
 
 [[require]]
 name = "mathlib"
