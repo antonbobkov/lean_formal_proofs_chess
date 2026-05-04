@@ -4,6 +4,7 @@ import TRC_Invariant_SimpleCases
 import TRC_Invariant_PieceLocations
 import TRC_Q_Lemma
 import TRC_Invariant_BlackEmpty
+import TRC_Invariant_KingRank
 import HelperLemmas
 import LadderStepIsLegal
 import Mathlib.Data.Finset.Card
@@ -101,7 +102,7 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
     unfold LadderShape
     rw [dif_pos lsh.hRfits]
     refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
-    · sorry  -- black king's rank is strictly above rookA
+    · exact LadderMove_BlackKingAboveNextRa_moveRb lsh black_move
   | moveRa =>
     obtain ⟨hK, hRb, hRa⟩ := applyLadderStep_PiecesAt_moveRa lsh
     have hK'  := whitePiecePreserved hK  rfl hbsrc bdst_empty
@@ -115,7 +116,7 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
     unfold LadderShape
     rw [dif_pos lsh.hRfits]
     refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
-    · sorry  -- black king's rank is strictly above rookA
+    · exact LadderMove_BlackKingAboveNextRa_moveRa lsh black_move
   | moveK =>
     have hRoom := hMoveK rfl
     obtain ⟨hK, hRb, hRa⟩ := applyLadderStep_PiecesAt_moveK lsh hRoom
@@ -132,7 +133,7 @@ theorem LadderShape.preservation {n : Nat} {board : Board n}
     unfold LadderShape
     rw [dif_pos h']
     refine ⟨h_turn, hK', hRb', hRa', hQ', ?_, h_only_bk, h_legal⟩
-    · sorry  -- black king's rank is strictly above rookA
+    · exact LadderMove_BlackKingAboveNextRa_moveK lsh hRoom black_move
 
 
 -- ------------------------------------------------------------
