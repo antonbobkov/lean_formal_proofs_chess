@@ -158,11 +158,10 @@ private lemma BlackReply_UniqueBlackKingPost {n : Nat} {board : Board n}
 -- check on the post-black-move board, contradicting `IsLegalSetup`).
 -- ------------------------------------------------------------
 
--- (file = 1, rank > pre-Ra.rank): the post-step Rb sits at (rank+1, 1)
--- in every phase and Ra.rank ≥ rank+1, so a black king above pre-Ra.rank
--- on file 1 would be attacked vertically by Rb. Line of sight is supplied
--- by `LadderMove_NoWhiteAboveRb` and the rook is preserved across the
--- (non-capturing) Black reply.
+-- (file = 1, rank > pre-Ra.rank): apply `RookCheckUp` on the post-board
+-- using the witness `LadderMove_RookAttacker_AboveRaRank_FileOne` (the
+-- post-step Rb at (rank+1, 1) attacks vertically up file 1), with the
+-- step-board no-white-above clause lifted across the Black ply.
 lemma BlackReply_NotAboveRaRank_FileOne {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
     {bsrc bdst : Pos n}
@@ -170,59 +169,32 @@ lemma BlackReply_NotAboveRaRank_FileOne {n : Nat} {board : Board n}
     ¬ (bdst.file.val = 1 ∧
        (rookAPos rank φ lsh.hRfits).rank.val < bdst.rank.val) := by
   rintro ⟨hfile, hrank⟩
-  -- Witness for the post-step Rb (uniformly at (rank+1, 1)).
-  obtain ⟨rp, hRb_at, hRb_rank, hRb_file⟩ :
-      ∃ rp : Pos n,
-        (applyLadderStep lsh) rp = some ⟨.White, .Rook⟩ ∧
-        rp.rank.val = rank.val + 1 ∧
-        rp.file.val = 1 := by
-    cases φ with
-    | moveRb =>
-      refine ⟨rookBPos rank .moveRa lsh.hRfits, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveRb lsh).2.1
-      · simp [rookBPos]
-      · simp [rookBPos]
-    | moveRa =>
-      refine ⟨rookBPos rank .moveK lsh.hRfits, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveRa lsh).2.1
-      · simp [rookBPos]
-      · simp [rookBPos]
-    | moveK =>
-      have hRoom := lsh.moveK_hRoom
-      refine ⟨rookBPos ⟨rank.val + 1, by omega⟩ .moveRb hRoom, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveK lsh hRoom).2.1
-      · simp [rookBPos]
-      · simp [rookBPos]
+  obtain ⟨rp, hRb_at, hRb_rank, hRb_file, no_white_above⟩ :=
+    LadderMove_RookAttacker_AboveRaRank_FileOne lsh
   have hpreRa_ge :
       rank.val + 1 ≤ (rookAPos rank φ lsh.hRfits).rank.val := by
     cases φ <;> simp [rookAPos]
-  have hRb_post := BlackReply_RookPreserved lsh black_move hRb_at
-  have hbdst_post := BlackReply_BlackKingAtDst lsh black_move
-  have only_bk_post := LadderShape_OnlyBlackKingPreserved lsh bsrc bdst
-  have unique_bk_post := BlackReply_UniqueBlackKingPost lsh black_move
-  have no_white_above_post :
-      ∀ p k, p.file = rp.file → rp.rank.val < p.rank.val →
-             (applyMove (applyLadderStep lsh) bsrc bdst) p ≠
-               some ⟨.White, k⟩ := by
-    intro p k hpf hpr hpw
-    apply LadderMove_NoWhiteAboveRb lsh p k
-    · have := congrArg Fin.val hpf
-      rw [hRb_file] at this; exact this
-    · rw [hRb_rank] at hpr; exact hpr
-    · exact BlackReply_StepWhite_Of_PostWhite lsh black_move hpw
   have hsame_file : bdst.file = rp.file := by
     apply Fin.ext; rw [hRb_file]; exact hfile
   have hbdst_above : rp.rank.val < bdst.rank.val := by
     rw [hRb_rank]; omega
+  have no_white_above_post :
+      ∀ p k, p.file = rp.file → rp.rank.val < p.rank.val →
+             (applyMove (applyLadderStep lsh) bsrc bdst) p ≠
+               some ⟨.White, k⟩ := fun p k hpf hpr hpw =>
+    no_white_above p k hpf hpr
+      (BlackReply_StepWhite_Of_PostWhite lsh black_move hpw)
   exact BlackReply_PostBoard_NotInCheck lsh black_move
-    (RookCheckUp _ rp bdst hRb_post hbdst_post only_bk_post unique_bk_post
+    (RookCheckUp _ rp bdst
+      (BlackReply_RookPreserved lsh black_move hRb_at)
+      (BlackReply_BlackKingAtDst lsh black_move)
+      (LadderShape_OnlyBlackKingPreserved lsh bsrc bdst)
+      (BlackReply_UniqueBlackKingPost lsh black_move)
       no_white_above_post hsame_file hbdst_above)
 
--- (file ≥ 2, rank = pre-Ra.rank): in moveRb / moveRa the post-step Rb at
--- (rank+1, 1) attacks rightward on rank+1 = pre-Ra.rank; in moveK the
--- post-step Ra at (rank+2, 0) attacks rightward on rank+2 = pre-Ra.rank.
--- Line of sight is supplied per phase by `LadderMove_NoWhiteRightOfRb_*`
--- / `LadderMove_NoWhiteRightOfRa_moveK`.
+-- (file ≥ 2, rank = pre-Ra.rank): apply `RookCheckRight` on the post-board
+-- using the witness `LadderMove_RookAttacker_AtRaRank_FileGe2` with the
+-- step-board no-white-right clause lifted across the Black ply.
 lemma BlackReply_NotAtRaRank_FileGe2 {n : Nat} {board : Board n}
     {rank : Fin n} {φ : LadderPhase} (lsh : LadderShape board rank φ)
     {bsrc bdst : Pos n}
@@ -230,65 +202,27 @@ lemma BlackReply_NotAtRaRank_FileGe2 {n : Nat} {board : Board n}
     ¬ (2 ≤ bdst.file.val ∧
        bdst.rank.val = (rookAPos rank φ lsh.hRfits).rank.val) := by
   rintro ⟨hfile, hrank⟩
-  -- A phase-uniform packaging: a step-board rook on pre-Ra.rank with
-  -- file < 2 plus "no white piece to its right on that rank" line of sight.
-  obtain ⟨rp, hRook_at, hrp_rank, hrp_file_lt, no_white_right⟩ :
-      ∃ rp : Pos n,
-        (applyLadderStep lsh) rp = some ⟨.White, .Rook⟩ ∧
-        rp.rank.val = (rookAPos rank φ lsh.hRfits).rank.val ∧
-        rp.file.val < 2 ∧
-        (∀ p k, p.rank = rp.rank → rp.file.val < p.file.val →
-                (applyLadderStep lsh) p ≠ some ⟨.White, k⟩) := by
-    cases φ with
-    | moveRb =>
-      refine ⟨rookBPos rank .moveRa lsh.hRfits, ?_, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveRb lsh).2.1
-      · simp [rookBPos, rookAPos]
-      · simp [rookBPos]
-      · intro p k hpr hpf
-        apply LadderMove_NoWhiteRightOfRb_moveRb lsh p k
-        · have := congrArg Fin.val hpr; simp [rookBPos] at this; exact this
-        · simp [rookBPos] at hpf; exact hpf
-    | moveRa =>
-      refine ⟨rookBPos rank .moveK lsh.hRfits, ?_, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveRa lsh).2.1
-      · simp [rookBPos, rookAPos]
-      · simp [rookBPos]
-      · intro p k hpr hpf
-        apply LadderMove_NoWhiteRightOfRb_moveRa lsh p k
-        · have := congrArg Fin.val hpr; simp [rookBPos] at this; exact this
-        · simp [rookBPos] at hpf; exact hpf
-    | moveK =>
-      have hRoom := lsh.moveK_hRoom
-      refine ⟨rookAPos ⟨rank.val + 1, by omega⟩ .moveRb hRoom, ?_, ?_, ?_, ?_⟩
-      · exact (applyLadderStep_PiecesAt_moveK lsh hRoom).2.2
-      · simp [rookAPos]
-      · simp [rookAPos]
-      · intro p k hpr hpf
-        apply LadderMove_NoWhiteRightOfRa_moveK lsh p k
-        · have := congrArg Fin.val hpr; simp [rookAPos] at this; exact this
-        · simp [rookAPos] at hpf; exact hpf
-  have hRook_post := BlackReply_RookPreserved lsh black_move hRook_at
-  have hbdst_post := BlackReply_BlackKingAtDst lsh black_move
-  have only_bk_post := LadderShape_OnlyBlackKingPreserved lsh bsrc bdst
-  have unique_bk_post := BlackReply_UniqueBlackKingPost lsh black_move
+  obtain ⟨rp, hRook_at, hrp_rank, hrp_file_lt, no_white_right⟩ :=
+    LadderMove_RookAttacker_AtRaRank_FileGe2 lsh
+  have hsame_rank : bdst.rank = rp.rank := by
+    apply Fin.ext; rw [hrank, hrp_rank]
+  have hking_right : rp.file.val < bdst.file.val := by omega
   have no_white_right_post :
       ∀ p k, p.rank = rp.rank → rp.file.val < p.file.val →
              (applyMove (applyLadderStep lsh) bsrc bdst) p ≠
                some ⟨.White, k⟩ := fun p k hpr hpf hpw =>
     no_white_right p k hpr hpf
       (BlackReply_StepWhite_Of_PostWhite lsh black_move hpw)
-  have hsame_rank : bdst.rank = rp.rank := by
-    apply Fin.ext; rw [hrank, hrp_rank]
-  have hking_right : rp.file.val < bdst.file.val := by omega
   exact BlackReply_PostBoard_NotInCheck lsh black_move
-    (RookCheckRight _ rp bdst hRook_post hbdst_post only_bk_post unique_bk_post
+    (RookCheckRight _ rp bdst
+      (BlackReply_RookPreserved lsh black_move hRook_at)
+      (BlackReply_BlackKingAtDst lsh black_move)
+      (LadderShape_OnlyBlackKingPreserved lsh bsrc bdst)
+      (BlackReply_UniqueBlackKingPost lsh black_move)
       no_white_right_post hsame_rank hking_right)
 
--- moveRa-only: (file ≥ 2, rank = pre-Ra.rank + 1). After Ra's ply the
--- post-step Ra sits at (rank+2, 0) = (pre-Ra.rank + 1, 0); it attacks
--- rightward on that rank, with line of sight from
--- `LadderMove_NoWhiteRightOfRa_moveRa`.
+-- moveRa-only: apply `RookCheckRight` on the post-board using
+-- `LadderMove_RookAttacker_AtRaRankPlusOne_FileGe2_moveRa`.
 lemma BlackReply_NotAtRaRankPlusOne_FileGe2_moveRa
     {n : Nat} {board : Board n} {rank : Fin n}
     (lsh : LadderShape board rank .moveRa)
@@ -297,32 +231,24 @@ lemma BlackReply_NotAtRaRankPlusOne_FileGe2_moveRa
     ¬ (2 ≤ bdst.file.val ∧
        bdst.rank.val = (rookAPos rank .moveRa lsh.hRfits).rank.val + 1) := by
   rintro ⟨hfile, hrank⟩
-  obtain ⟨_, _, hRa_at⟩ := applyLadderStep_PiecesAt_moveRa lsh
-  set rp : Pos n := rookAPos rank .moveK lsh.hRfits with hrp_def
-  have hrp_rank : rp.rank.val = rank.val + 2 := by simp [rp, rookAPos]
-  have hrp_file : rp.file.val = 0 := by simp [rp, rookAPos]
-  have hpreRa_rank :
-      (rookAPos rank .moveRa lsh.hRfits).rank.val = rank.val + 1 := by
-    simp [rookAPos]
-  have hRa_post := BlackReply_RookPreserved lsh black_move hRa_at
-  have hbdst_post := BlackReply_BlackKingAtDst lsh black_move
-  have only_bk_post := LadderShape_OnlyBlackKingPreserved lsh bsrc bdst
-  have unique_bk_post := BlackReply_UniqueBlackKingPost lsh black_move
+  obtain ⟨rp, hRa_at, hrp_rank, hrp_file, no_white_right⟩ :=
+    LadderMove_RookAttacker_AtRaRankPlusOne_FileGe2_moveRa lsh
+  have hsame_rank : bdst.rank = rp.rank := by
+    apply Fin.ext; rw [hrank, hrp_rank]
+  have hking_right : rp.file.val < bdst.file.val := by
+    rw [hrp_file]; omega
   have no_white_right_post :
       ∀ p k, p.rank = rp.rank → rp.file.val < p.file.val →
              (applyMove (applyLadderStep lsh) bsrc bdst) p ≠
-               some ⟨.White, k⟩ := by
-    intro p k hpr hpf hpw
-    apply LadderMove_NoWhiteRightOfRa_moveRa lsh p k
-    · have := congrArg Fin.val hpr; rw [hrp_rank] at this; exact this
-    · rw [hrp_file] at hpf; exact hpf
-    · exact BlackReply_StepWhite_Of_PostWhite lsh black_move hpw
-  have hsame_rank : bdst.rank = rp.rank := by
-    apply Fin.ext; rw [hrank, hpreRa_rank, hrp_rank]
-  have hking_right : rp.file.val < bdst.file.val := by
-    rw [hrp_file]; omega
+               some ⟨.White, k⟩ := fun p k hpr hpf hpw =>
+    no_white_right p k hpr hpf
+      (BlackReply_StepWhite_Of_PostWhite lsh black_move hpw)
   exact BlackReply_PostBoard_NotInCheck lsh black_move
-    (RookCheckRight _ rp bdst hRa_post hbdst_post only_bk_post unique_bk_post
+    (RookCheckRight _ rp bdst
+      (BlackReply_RookPreserved lsh black_move hRa_at)
+      (BlackReply_BlackKingAtDst lsh black_move)
+      (LadderShape_OnlyBlackKingPreserved lsh bsrc bdst)
+      (BlackReply_UniqueBlackKingPost lsh black_move)
       no_white_right_post hsame_rank hking_right)
 
 -- ------------------------------------------------------------
