@@ -60,6 +60,14 @@ name = "TRC_Invariant_KingRank"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
 [[lean_lib]]
+name = "TRC_FinalState"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
+name = "TRC_BlackHasLegalMove"
+srcDir = "Chess/proofs/two_rook_ladder_mate"
+
+[[lean_lib]]
 name = "TRC_Termination"
 srcDir = "Chess/proofs/two_rook_ladder_mate"
 
