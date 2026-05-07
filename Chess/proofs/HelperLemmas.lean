@@ -451,3 +451,137 @@ lemma Q_of_subset_card_le {n : Nat} (b : Board n) (c : Color)
   rw [← h_eq] at hp_in
   simp only [Finset.mem_insert, Finset.mem_singleton] at hp_in
   exact hp_in
+
+
+
+-- ============================================================
+-- KING IN AN EMPTY RECTANGLE HAS A LEGAL MOVE
+-- ============================================================
+-- A position lies in the axis-aligned rectangle bounded by
+-- [rmin, rmax] × [fmin, fmax] (inclusive on both ends).
+def InRect {n : Nat} (rmin rmax fmin fmax : Fin n) (p : Pos n) : Prop :=
+  rmin.val ≤ p.rank.val ∧ p.rank.val ≤ rmax.val ∧
+  fmin.val ≤ p.file.val ∧ p.file.val ≤ fmax.val
+
+
+-- In any non-degenerate rectangle (height > 1 or width > 1), every point
+-- has at least one neighbour also in the rectangle, reachable by a single
+-- king step. We pick the neighbour by stepping along whichever axis is
+-- non-degenerate, away from whichever edge is closer.
+lemma exists_adj_in_rect {n : Nat} {rmin rmax fmin fmax : Fin n}
+    (p : Pos n) (hp : InRect rmin rmax fmin fmax p)
+    (hbig : rmin.val < rmax.val ∨ fmin.val < fmax.val) :
+    ∃ q : Pos n, q ≠ p ∧ InRect rmin rmax fmin fmax q ∧ ValidKingMove p q := by
+  obtain ⟨hr1, hr2, hf1, hf2⟩ := hp
+  rcases hbig with hr | hf
+  · -- vary rank
+    by_cases hpr : p.rank.val < rmax.val
+    · -- step rank up
+      have hbnd : p.rank.val + 1 < n := lt_of_le_of_lt hpr rmax.isLt
+      refine ⟨⟨⟨p.rank.val + 1, hbnd⟩, p.file⟩, ?_, ?_, ?_⟩
+      · intro heq
+        have h := congrArg (fun x : Pos n => x.rank.val) heq
+        simp at h
+      · refine ⟨?_, ?_, hf1, hf2⟩
+        · show rmin.val ≤ p.rank.val + 1; omega
+        · show p.rank.val + 1 ≤ rmax.val; omega
+      · refine ⟨?_, ?_, ?_⟩
+        · intro heq
+          have h := congrArg (fun x : Pos n => x.rank.val) heq
+          simp at h
+        · show WithinOne p.rank.val (p.rank.val + 1)
+          unfold WithinOne; omega
+        · show WithinOne p.file.val p.file.val
+          unfold WithinOne; omega
+    · -- step rank down (p.rank.val = rmax.val > rmin.val)
+      have hpos : 1 ≤ p.rank.val := by omega
+      have hbnd : p.rank.val - 1 < n := by have := p.rank.isLt; omega
+      refine ⟨⟨⟨p.rank.val - 1, hbnd⟩, p.file⟩, ?_, ?_, ?_⟩
+      · intro heq
+        have h := congrArg (fun x : Pos n => x.rank.val) heq
+        simp at h; omega
+      · refine ⟨?_, ?_, hf1, hf2⟩
+        · show rmin.val ≤ p.rank.val - 1; omega
+        · show p.rank.val - 1 ≤ rmax.val; omega
+      · refine ⟨?_, ?_, ?_⟩
+        · intro heq
+          have h := congrArg (fun x : Pos n => x.rank.val) heq
+          simp at h; omega
+        · show WithinOne p.rank.val (p.rank.val - 1)
+          unfold WithinOne; omega
+        · show WithinOne p.file.val p.file.val
+          unfold WithinOne; omega
+  · -- vary file (symmetric)
+    by_cases hpf : p.file.val < fmax.val
+    · have hbnd : p.file.val + 1 < n := lt_of_le_of_lt hpf fmax.isLt
+      refine ⟨⟨p.rank, ⟨p.file.val + 1, hbnd⟩⟩, ?_, ?_, ?_⟩
+      · intro heq
+        have h := congrArg (fun x : Pos n => x.file.val) heq
+        simp at h
+      · refine ⟨hr1, hr2, ?_, ?_⟩
+        · show fmin.val ≤ p.file.val + 1; omega
+        · show p.file.val + 1 ≤ fmax.val; omega
+      · refine ⟨?_, ?_, ?_⟩
+        · intro heq
+          have h := congrArg (fun x : Pos n => x.file.val) heq
+          simp at h
+        · show WithinOne p.rank.val p.rank.val
+          unfold WithinOne; omega
+        · show WithinOne p.file.val (p.file.val + 1)
+          unfold WithinOne; omega
+    · have hpos : 1 ≤ p.file.val := by omega
+      have hbnd : p.file.val - 1 < n := by have := p.file.isLt; omega
+      refine ⟨⟨p.rank, ⟨p.file.val - 1, hbnd⟩⟩, ?_, ?_, ?_⟩
+      · intro heq
+        have h := congrArg (fun x : Pos n => x.file.val) heq
+        simp at h; omega
+      · refine ⟨hr1, hr2, ?_, ?_⟩
+        · show fmin.val ≤ p.file.val - 1; omega
+        · show p.file.val - 1 ≤ fmax.val; omega
+      · refine ⟨?_, ?_, ?_⟩
+        · intro heq
+          have h := congrArg (fun x : Pos n => x.file.val) heq
+          simp at h; omega
+        · show WithinOne p.rank.val p.rank.val
+          unfold WithinOne; omega
+        · show WithinOne p.file.val (p.file.val - 1)
+          unfold WithinOne; omega
+
+
+-- If a king of color `c` is the unique piece in some m × k rectangle
+-- (with m > 1 or k > 1), and is safe on every square of that rectangle
+-- (i.e. relocating the king there leaves it not in check), and it's c's
+-- turn, then a legal move exists.
+--
+-- The proof picks any in-rectangle neighbour `dst` of the king's square
+-- via `exists_adj_in_rect`; that square is empty (by `hsole`), and the
+-- post-move "side just moved is not in check" condition is exactly
+-- `hsafe` applied at `dst`. King-uniqueness on the post-move board is
+-- delegated to `NoCaputureMove_PreservesKings`.
+theorem IsLegalSetup.king_in_rect_has_legal_move {n : Nat} {b : Board n}
+    (hlegal : IsLegalSetup b) {c : Color} (hturn : b.turn = c)
+    {rmin rmax fmin fmax : Fin n}
+    (hbig : rmin.val < rmax.val ∨ fmin.val < fmax.val)
+    {kp : Pos n} (hkp_in : InRect rmin rmax fmin fmax kp)
+    (hkp : b kp = some ⟨c, .King⟩)
+    (hsole : ∀ q : Pos n, InRect rmin rmax fmin fmax q → q ≠ kp → b q = none)
+    (hsafe : ∀ q : Pos n, InRect rmin rmax fmin fmax q → q ≠ kp →
+              ¬ IsCheck (applyMove b kp q) c) :
+    ∃ src dst, IsLegalMove b src dst := by
+  obtain ⟨dst, hne, hin, hadj⟩ := exists_adj_in_rect kp hkp_in hbig
+  have h_dst_empty : b dst = none := hsole dst hin hne
+  refine ⟨kp, dst, .King, ?_, ?_, ?_, ?_⟩
+  · -- b kp = some ⟨b.turn, .King⟩
+    rw [hturn]; exact hkp
+  · -- PieceMoveLogic for King reduces to ValidKingMove
+    exact hadj
+  · exact EmptySquare_NotFriendly _ _ h_dst_empty
+  · -- IsLegalSetup (applyMove b kp dst)
+    obtain ⟨hwk, hbk⟩ := NoCaputureMove_PreservesKings b kp dst hlegal h_dst_empty
+    refine ⟨hwk, hbk, ?_⟩
+    -- The "side not to move" on the post-move board is c (turn flipped twice).
+    have hturn_eq : (applyMove b kp dst).turn.opponent = c := by
+      show b.turn.opponent.opponent = c
+      rw [hturn]; cases c <;> rfl
+    rw [hturn_eq]
+    exact hsafe dst hin hne
