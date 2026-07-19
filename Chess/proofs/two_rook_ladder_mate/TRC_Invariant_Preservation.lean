@@ -23,9 +23,9 @@ import Mathlib.Data.Finset.Card
 -- ------------------------------------------------------------
 -- Used inline by `LadderShape.preservation` (the per-phase plumbing
 -- for "white piece p is unchanged across the full White+Black cycle").
--- Both rely on the simplifying assumption that black's reply targets
--- an empty square (no white piece is captured); ruling that out is
--- still future work.
+-- Both take as input the fact that black's reply targets an empty
+-- square (no white piece is captured), which is discharged by
+-- `BlackReply_DstEmpty` in `TRC_Invariant_BlackEmpty`.
 
 -- Helper: bsrc carries a black piece (since `IsLegalMove`'s piece
 -- belongs to the side to move, which is `(applyLadderStep lsh).turn = Black`).

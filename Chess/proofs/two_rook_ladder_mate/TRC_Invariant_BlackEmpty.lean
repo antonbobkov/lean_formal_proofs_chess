@@ -6,9 +6,9 @@ import TRC_Q_Lemma
 -- ------------------------------------------------------------
 -- BLACK REPLY TARGETS AN EMPTY SQUARE
 -- ------------------------------------------------------------
--- Closes the `bdst_empty` hypothesis used inside `LadderShape.preservation`
--- (currently `sorry`'d). The argument chains four facts about the step
--- board (the board after White's ladder ply):
+-- Closes the `bdst_empty` hypothesis used inside `LadderShape.preservation`.
+-- The argument chains four facts about the step board (the board after
+-- White's ladder ply):
 --
 --   (i)   The (unique) black king still has file ≥ 2 and rank strictly
 --         greater than `rookAPos rank φ` — White's ply moves into an

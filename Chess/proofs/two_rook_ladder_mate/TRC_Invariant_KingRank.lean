@@ -13,8 +13,8 @@ import LadderStepIsLegal
 -- After a full White ply (`applyLadderStep`) followed by any legal Black
 -- reply, the black king's rank is strictly greater than the *next-state*
 -- rookA rank. This file packages that conclusion phase by phase, closing
--- the `black_loc` conjunct of `LadderShape.preservation` (currently
--- three `sorry`s, one per phase).
+-- the `black_loc` conjunct of `LadderShape.preservation` (one lemma per
+-- phase).
 --
 -- ── Strategy (Ra.rank below denotes the *pre-move* rookA rank) ──
 --   1. `BlackReply_DstBounds` (in `TRC_Invariant_BlackEmpty`):
@@ -32,8 +32,8 @@ import LadderStepIsLegal
 --      one per phase.
 --   4. Lift to the `LadderShape` invariant form (any `bp` carrying the
 --      black king on the post-black-move board) using uniqueness of the
---      black king. These are the plug-ins for the three `sorry`s in
---      `LadderShape.preservation`.
+--      black king. These are what `LadderShape.preservation` consumes,
+--      one per phase.
 
 -- ------------------------------------------------------------
 -- SHARED BOOKKEEPING FOR THE EXCLUSION LEMMAS
@@ -346,8 +346,8 @@ lemma BlackReply_DstRank_gt_NextRa_moveK {n : Nat} {board : Board n}
     · rw [heq, hpreRa]
 
 -- ------------------------------------------------------------
--- INVARIANT PRESERVATION  (plug-ins for the three `sorry`s in
--- `LadderShape.preservation`)
+-- INVARIANT PRESERVATION  (the `black_loc` conjunct consumed by
+-- `LadderShape.preservation`, one lemma per phase)
 -- ------------------------------------------------------------
 -- On the post-black-move board the only black piece is the (unique)
 -- black king sitting at bdst, so the `bdst.rank > next-Ra.rank` bound

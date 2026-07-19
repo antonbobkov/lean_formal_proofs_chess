@@ -17,8 +17,9 @@ import ChessRules
 --
 -- After the cycle, the setup matches the invariant for R' = R+1.
 -- This file formalises the invariant and the deterministic move
--- function consumed via a `LadderShape` proof; preservation and
--- eventual-checkmate theorems are out of scope.
+-- function consumed via a `LadderShape` proof. Preservation lives in
+-- `TRC_Invariant_Preservation`; the eventual-checkmate theorem lives in
+-- `TRC_Termination`.
 
 
 -- ------------------------------------------------------------
