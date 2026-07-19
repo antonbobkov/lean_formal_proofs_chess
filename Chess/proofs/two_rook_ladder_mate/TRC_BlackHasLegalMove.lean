@@ -31,5 +31,7 @@ noncomputable def blackLegalReply {n : Nat} (s : LadderState n)
 lemma blackLegalReply_isLegal {n : Nat} (s : LadderState n)
     (h_not_final : ¬ IsFinalLadderState s) :
     IsLegalMove (applyLadderStep s.shape)
-      (blackLegalReply s h_not_final).1 (blackLegalReply s h_not_final).2 := by
-  sorry
+      (blackLegalReply s h_not_final).1 (blackLegalReply s h_not_final).2 :=
+  (Classical.indefiniteDescription _
+    (Classical.indefiniteDescription _
+      (Black_HasLegalReply_NonFinal s h_not_final)).2).2
