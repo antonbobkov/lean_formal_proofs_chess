@@ -24,8 +24,8 @@ Chess/
         ├── TRC_Invariant_KingRank.lean      # Black king stays above rook A
         ├── TRC_Invariant_Preservation.lean  # The inductive invariant theorem
         ├── TRC_FinalState.lean              # Mate at the final state (open)
-        ├── TRC_BlackHasLegalMove.lean       # Black always has a reply until mate (open)
-        ├── TRC_Termination.lean             # The ladder terminates in mate (open)
+        ├── TRC_BlackHasLegalMove.lean       # Black always has a reply until mate (needs 3 < n)
+        ├── TRC_Termination.lean             # The ladder terminates in mate
         └── TRC_Tests.lean                   # #guard sanity checks on an 8×8 ladder
 ```
 
@@ -154,14 +154,17 @@ theorem LadderShape.preservation -- one White ply + ANY legal Black reply
 
 In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The first (`LadderStep_IsCheck_AtFinal`) and third (`LadderStep_NoBlackRook`) are proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through `LadderStep_NoKingEscape_AtFinal`.
 
-**Still open** (2 `sorry`s — the build reports each one):
+**Still open** (1 `sorry` — the build reports it):
 
-- `TRC_FinalState.lean` — `LadderStep_NoKingEscape_AtFinal`: no destination of the Black king escapes the mate. The substantial remaining piece of the final-state geometry.
-- `TRC_BlackHasLegalMove.lean` — `Black_HasLegalReply_NonFinal`: away from the final state the black king has a destination that is legal, i.e. genuinely unattacked by both rooks and the white king. (`blackLegalReply`, which packages a witness as a `(src, dst)` pair, and its spec `blackLegalReply_isLegal` are already in place.)
+- `TRC_FinalState.lean` — `LadderStep_NoKingEscape_AtFinal`: no destination of the Black king escapes the mate. The last piece of the final-state geometry.
+
+`Black_HasLegalReply_NonFinal` — that Black can always reply away from a final state — is proved, **subject to `3 < n`**. After White's ply every white piece sits on file 0 or 1 at rank at most `whiteTopRank`, so every square with file ≥ 2 above that ceiling is empty and unattacked: a rook would have to share the king's rank or file, and the white king is always two files away. The Black king is already in that region, or (phase `moveRa`, in check from rookA) sits exactly on the ceiling and retreats straight up, which non-finality guarantees is on the board.
+
+The `3 < n` bound is necessary, not an artefact of the proof. On a 3×3 board the ladder can **stalemate** Black: from `LadderShape` in phase `moveRb` with White K@(0,0), R_b@(0,1), R_a@(1,0) and Black K@(2,2), White's ply leaves Black with no legal move and not in check. That position is checked by `decide` as `stuck3` in `TRC_Tests.lean`. The bound is exactly what makes the safe rectangle `[m+1, n-1] × [2, n-1]` wider than a single square.
 
 `exists_iter_final` — that iterating the cycle reaches a final state — is proved: `ladderMeasure` flattens the pair (rank room left, phase distance) into `3 * (n - 3 - rank) + phaseIdx phase`, and every non-final cycle drops it by at least one, so ordinary induction on a fuel bound suffices.
 
-**On the shape of the termination statement:** `hreply` — the assumption that Black's chosen move is legal — is required only at *non-final* states. Quantifying it over all states would make the theorem vacuous: at a final state Black is checkmated, so no legal Black move exists and the hypothesis could never be satisfied. Correspondingly, `ladderCycleStep` treats final states as fixed points. `Black_HasLegalReply_NonFinal` (once proved) shows the restricted hypothesis is inhabited, i.e. that some Black strategy actually satisfies it.
+**On the shape of the termination statement:** `hreply` — the assumption that Black's chosen move is legal — is required only at *non-final* states. Quantifying it over all states would make the theorem vacuous: at a final state Black is checkmated, so no legal Black move exists and the hypothesis could never be satisfied. Correspondingly, `ladderCycleStep` treats final states as fixed points. `Black_HasLegalReply_NonFinal` shows the restricted hypothesis is inhabited whenever `3 < n`, i.e. that some Black strategy actually satisfies it.
 
 ## Dependencies
 
@@ -178,7 +181,7 @@ In `TRC_FinalState.lean`, mate at the final state is assembled from three facts:
 lake build
 ```
 
-This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the two open goals in `TRC_FinalState.lean` and `TRC_BlackHasLegalMove.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
+This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warning for the one open goal in `TRC_FinalState.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
 
 To build a single piece of the development, name its library, e.g.:
 
