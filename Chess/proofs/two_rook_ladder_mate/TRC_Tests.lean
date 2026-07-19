@@ -99,3 +99,45 @@ private def afterCycle : Board 8 :=
 -- White to move on `boardRbShifted` but `afterCycle` has Black to
 -- move because the last `applyMove` flipped it).
 #guard ∀ p ∈ allPositions 8, afterCycle.pieces p == boardRbShifted.pieces p
+
+
+-- ============================================================
+-- COUNTEREXAMPLE: the ladder needs room (n > 3)
+-- ============================================================
+-- `Black_HasLegalReply_NonFinal` claims Black always has a legal reply
+-- away from a final state. That is FALSE on a 3×3 board: the position
+-- below is a genuine `LadderShape` in phase moveRb (hence not final,
+-- since only moveRb→moveRa states can be final), yet after White's ply
+-- Black is stalemated — not in check, and with no legal move.
+--
+--   . . BK     Black king (2,2) — every neighbour is covered
+--   WR WR .    R_a (1,0), R_b (1,1) after the ply
+--   WK . .     White king (0,0)
+--
+-- (2,1) and (1,2) are covered by R_b along file 1 / rank 1; (1,1)
+-- is a capture of R_b but lands on R_a's rank. The general proof
+-- therefore needs `3 < n`, which makes the safe region
+-- [m+1, n-1] × [2, n-1] non-degenerate.
+
+private def sq3 (r c : Fin 3) : Pos 3 := ⟨r, c⟩
+
+private def stuck3 : Board 3 where
+  pieces p :=
+    if p = sq3 0 0 then some WK
+    else if p = sq3 0 1 then some WR
+    else if p = sq3 1 0 then some WR
+    else if p = sq3 2 2 then some BK
+    else none
+  turn := .White
+
+-- It really is a ladder state, in phase moveRb.
+#guard decide (LadderShape stuck3 (0 : Fin 3) .moveRb)
+
+-- After White's ply Black has no legal move at all ...
+#guard decide (¬ ∃ src : Pos 3, ∃ dst : Pos 3,
+  IsLegalMove (applyLadderStep (board := stuck3) (rank := (0 : Fin 3))
+    (φ := .moveRb) (by decide)) src dst)
+
+-- ... and is not in check: stalemate, not mate.
+#guard decide (¬ IsCheck (applyLadderStep (board := stuck3) (rank := (0 : Fin 3))
+    (φ := .moveRb) (by decide)) .Black)
