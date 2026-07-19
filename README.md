@@ -13,7 +13,7 @@ Chess/
     ├── HelperLemmas.lean        # Shared move/check/counting lemmas
     ├── HowManyRooks.lean        # Proof: at most n non-attacking rooks fit on n×n board
     ├── TwoKingNoCheckmate.lean  # Proof: checkmate is impossible with only two kings
-    └── two_rook_ladder_mate/    # In progress: K+2R vs K forces mate
+    └── two_rook_ladder_mate/    # K+2R vs K forces mate (complete)
         ├── TRC_FunctionWithInvariant.lean   # LadderShape invariant + move function
         ├── LadderStepIsLegal.lean           # White's ladder ply is always legal
         ├── TRC_Invariant_SimpleCases.lean   # Turn / legal-setup / only-black-king conjuncts
@@ -23,7 +23,7 @@ Chess/
         ├── TRC_Invariant_CheckLocations.lean # White-piece-free regions on the step board
         ├── TRC_Invariant_KingRank.lean      # Black king stays above rook A
         ├── TRC_Invariant_Preservation.lean  # The inductive invariant theorem
-        ├── TRC_FinalState.lean              # Mate at the final state (open)
+        ├── TRC_FinalState.lean              # Mate at the final state
         ├── TRC_BlackHasLegalMove.lean       # Black always has a reply until mate (needs 3 < n)
         ├── TRC_Termination.lean             # The ladder terminates in mate
         └── TRC_Tests.lean                   # #guard sanity checks on an 8×8 ladder
@@ -128,7 +128,7 @@ theorem checkmate_impossible_two_kings {n : Nat} (b : Board n)
    - **King:** The attacking king is unique (from `∃!`), so it must be the opponent's king. But `ValidKingMove` is symmetric (`ValidKingMove_comm`), contradicting `hno_attack`.
 4. No check → no checkmate (by `not_check_implies_not_checkmate`).
 
-### TwoRookLadderMate — Forced Mate (in progress)
+### TwoRookLadderMate — Forced Mate
 
 **Goal:** White (King + two Rooks) mates Black (lone King) on an n×n board, whatever Black plays.
 
@@ -142,21 +142,18 @@ White follows the textbook ladder: with base rank `R`, the pieces sit at `K = (R
 
 `LadderShape board rank φ` is the invariant: White to move, the three white pieces on their phase squares, *no other* white piece anywhere, the black king strictly above `R_a`'s rank, no black rook, and `IsLegalSetup`. It is a decidable `Prop`, so `TRC_Tests.lean` checks concrete 8×8 boards with `#guard`. `ladderStep` reads the next White move off a `LadderShape` proof, and `LadderState n` bundles a board with its invariant so cycles can be iterated with `^[k]`.
 
-**Proved:**
+**Proved** (the whole chain is `sorry`-free):
 
 ```lean
-theorem ladderStep_isLegal      -- White's ladder ply is always a legal move
+theorem ladderStep_isLegal       -- White's ladder ply is always a legal move
 theorem LadderShape.preservation -- one White ply + ANY legal Black reply
                                  -- ⟹ LadderShape at the next rank/phase
+theorem ladderMate_termination   -- ∃ k, the k-th cycle delivers checkmate
 ```
 
 `preservation` is the bulk of the work: each conjunct of the invariant has its own transport lemma, with the "only three white squares" clause going through a `Finset.card` argument in `HelperLemmas.lean`, and the black-king rank bound handled phase by phase in `TRC_Invariant_KingRank.lean`.
 
-In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The first (`LadderStep_IsCheck_AtFinal`) and third (`LadderStep_NoBlackRook`) are proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through `LadderStep_NoKingEscape_AtFinal`.
-
-**Still open** (1 `sorry` — the build reports it):
-
-- `TRC_FinalState.lean` — `LadderStep_NoKingEscape_AtFinal`: no destination of the Black king escapes the mate. The last piece of the final-state geometry.
+`IsCheckmate_AtFinal` (in `TRC_FinalState.lean`) assembles mate at the final state from three facts: rookA lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. With `rank + 3 = n` the Black king is pinned to rank `n-1` at file ≥ 2, so a king step lands on rank `rank+1` or `rank+2` at file ≥ 1, and every such square is covered — by rookA along rank `rank+2`, by rookB along rank `rank+1`, or (the one capture, of rookB at `(rank+1, 1)`) by the White king diagonally from `(rank, 0)`.
 
 `Black_HasLegalReply_NonFinal` — that Black can always reply away from a final state — is proved, **subject to `3 < n`**. After White's ply every white piece sits on file 0 or 1 at rank at most `whiteTopRank`, so every square with file ≥ 2 above that ceiling is empty and unattacked: a rook would have to share the king's rank or file, and the white king is always two files away. The Black king is already in that region, or (phase `moveRa`, in check from rookA) sits exactly on the ceiling and retreats straight up, which non-finality guarantees is on the board.
 
@@ -181,7 +178,7 @@ The `3 < n` bound is necessary, not an artefact of the proof. On a 3×3 board th
 lake build
 ```
 
-This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warning for the one open goal in `TRC_FinalState.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
+This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build is clean — no `sorry`, no warnings. `ladderMate_termination`, `checkmate_impossible_two_kings`, and `rooks_le` each report only `[propext, Classical.choice, Quot.sound]` under `#print axioms`.
 
 To build a single piece of the development, name its library, e.g.:
 
