@@ -152,9 +152,11 @@ theorem LadderShape.preservation -- one White ply + ANY legal Black reply
 
 `preservation` is the bulk of the work: each conjunct of the invariant has its own transport lemma, with the "only three white squares" clause going through a `Finset.card` argument in `HelperLemmas.lean`, and the black-king rank bound handled phase by phase in `TRC_Invariant_KingRank.lean`.
 
-**Still open** (7 `sorry`s — the build reports each one):
+In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The third (`LadderStep_NoBlackRook`) is proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through its two open inputs.
 
-- `TRC_FinalState.lean` — that the last ply actually mates: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. Four `sorry`s, of which `LadderStep_NoKingEscape_AtFinal` is the substantial one.
+**Still open** (5 `sorry`s — the build reports each one):
+
+- `TRC_FinalState.lean` — `LadderStep_IsCheck_AtFinal` and `LadderStep_NoKingEscape_AtFinal`, the geometry of the mating position. The latter is the substantial one.
 - `TRC_BlackHasLegalMove.lean` — `Black_HasLegalReply_NonFinal`: away from the final state the black king has a destination that is legal, i.e. genuinely unattacked by both rooks and the white king. (`blackLegalReply_isLegal` is then just the `Classical.indefiniteDescription` spec.)
 - `TRC_Termination.lean` — `exists_iter_final`: iterating the cycle reaches a final state, by induction on the lexicographic measure `(n - 3 - rank, phase distance to .moveRa)`.
 
@@ -175,7 +177,7 @@ theorem LadderShape.preservation -- one White ply + ANY legal Black reply
 lake build
 ```
 
-This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the seven open goals in `TRC_FinalState.lean`, `TRC_BlackHasLegalMove.lean`, and `TRC_Termination.lean`.
+This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the five open goals in `TRC_FinalState.lean`, `TRC_BlackHasLegalMove.lean`, and `TRC_Termination.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
 
 To build a single piece of the development, name its library, e.g.:
 

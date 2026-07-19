@@ -42,10 +42,15 @@ lemma LadderStep_NoKingEscape_AtFinal {n : Nat} (s : LadderState n)
 -- rook part of IsCheckmate is vacuous.
 lemma LadderStep_NoBlackRook {n : Nat} (s : LadderState n) :
     ∀ src, (applyLadderStep s.shape) src ≠ some ⟨.Black, .Rook⟩ := by
-  sorry
+  intro src h_rook
+  exact PieceType.noConfusion
+    (LadderMove_PreservesOnlyBlackKing s.shape src .Rook h_rook)
 
 -- Combining the three: applyLadderStep on a final state delivers checkmate.
 theorem IsCheckmate_AtFinal {n : Nat} (s : LadderState n)
     (h_final : IsFinalLadderState s) :
     IsCheckmate (applyLadderStep s.shape) .Black := by
-  sorry
+  refine ⟨LadderStep_IsCheck_AtFinal s h_final, fun src => ⟨?_, ?_⟩⟩
+  · exact LadderStep_NoKingEscape_AtFinal s h_final src
+  · intro h_rook
+    exact absurd h_rook (LadderStep_NoBlackRook s src)
