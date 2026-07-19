@@ -1,6 +1,8 @@
 import ChessRules
 import TRC_FunctionWithInvariant
 import LadderStepIsLegal
+import TRC_Invariant_BlackEmpty
+import TRC_Invariant_CheckLocations
 
 -- ============================================================
 -- FINAL LADDER STATE
@@ -24,7 +26,22 @@ instance {n : Nat} (s : LadderState n) : Decidable (IsFinalLadderState s) := by
 lemma LadderStep_IsCheck_AtFinal {n : Nat} (s : LadderState n)
     (h_final : IsFinalLadderState s) :
     IsCheck (applyLadderStep s.shape) .Black := by
-  sorry
+  obtain ⟨board, rank, phase, shape⟩ := s
+  obtain ⟨h_phase, h_rank⟩ := h_final
+  subst h_phase
+  -- The step board is a legal setup, so it has a (unique) black king.
+  obtain ⟨_, _, _, _, h_step_legal⟩ := ladderStep_isLegal shape
+  obtain ⟨_, ⟨kp, hkp, _⟩, _⟩ := h_step_legal
+  -- That king has file ≥ 2 and rank strictly above the pre-move rookA
+  -- rank (= rank + 1). With rank + 3 = n and kp.rank < n, its rank is
+  -- pinned to rank + 2 — exactly one above the pre-move rookA.
+  obtain ⟨hfile, hrank⟩ := LadderMove_BlackKing_FarFromRa shape kp hkp
+  refine LadderMove_BlackInCheck_AtRaRankPlusOne_FileGe2_moveRa
+    shape kp hkp ?_ hfile
+  have hRa : (rookAPos rank .moveRa shape.hRfits).rank.val = rank.val + 1 := rfl
+  have hn : rank.val + 3 = n := h_rank
+  have hlt := kp.rank.isLt
+  omega
 
 -- After applyLadderStep on a final state, the Black king has no legal
 -- destination: ranks n-2 and n-1 are covered by the two rooks, files 0

@@ -152,11 +152,11 @@ theorem LadderShape.preservation -- one White ply + ANY legal Black reply
 
 `preservation` is the bulk of the work: each conjunct of the invariant has its own transport lemma, with the "only three white squares" clause going through a `Finset.card` argument in `HelperLemmas.lean`, and the black-king rank bound handled phase by phase in `TRC_Invariant_KingRank.lean`.
 
-In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The third (`LadderStep_NoBlackRook`) is proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through its two open inputs.
+In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The first (`LadderStep_IsCheck_AtFinal`) and third (`LadderStep_NoBlackRook`) are proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through `LadderStep_NoKingEscape_AtFinal`.
 
-**Still open** (4 `sorry`s — the build reports each one):
+**Still open** (3 `sorry`s — the build reports each one):
 
-- `TRC_FinalState.lean` — `LadderStep_IsCheck_AtFinal` and `LadderStep_NoKingEscape_AtFinal`, the geometry of the mating position. The latter is the substantial one.
+- `TRC_FinalState.lean` — `LadderStep_NoKingEscape_AtFinal`: no destination of the Black king escapes the mate. The substantial remaining piece of the final-state geometry.
 - `TRC_BlackHasLegalMove.lean` — `Black_HasLegalReply_NonFinal`: away from the final state the black king has a destination that is legal, i.e. genuinely unattacked by both rooks and the white king. (`blackLegalReply`, which packages a witness as a `(src, dst)` pair, and its spec `blackLegalReply_isLegal` are already in place.)
 - `TRC_Termination.lean` — `exists_iter_final`: iterating the cycle reaches a final state, by induction on the lexicographic measure `(n - 3 - rank, phase distance to .moveRa)`.
 
@@ -177,7 +177,7 @@ In `TRC_FinalState.lean`, mate at the final state is assembled from three facts:
 lake build
 ```
 
-This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the four open goals in `TRC_FinalState.lean`, `TRC_BlackHasLegalMove.lean`, and `TRC_Termination.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
+This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the three open goals in `TRC_FinalState.lean`, `TRC_BlackHasLegalMove.lean`, and `TRC_Termination.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
 
 To build a single piece of the development, name its library, e.g.:
 
