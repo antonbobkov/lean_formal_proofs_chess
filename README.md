@@ -154,11 +154,12 @@ theorem LadderShape.preservation -- one White ply + ANY legal Black reply
 
 In `TRC_FinalState.lean`, mate at the final state is assembled from three facts: rook A lands on `(n-1,0)` giving check, no king destination escapes it, and Black has no rook. The first (`LadderStep_IsCheck_AtFinal`) and third (`LadderStep_NoBlackRook`) are proved outright, and `IsCheckmate_AtFinal` assembles all three — so that theorem type-checks today, but still depends on `sorryAx` through `LadderStep_NoKingEscape_AtFinal`.
 
-**Still open** (3 `sorry`s — the build reports each one):
+**Still open** (2 `sorry`s — the build reports each one):
 
 - `TRC_FinalState.lean` — `LadderStep_NoKingEscape_AtFinal`: no destination of the Black king escapes the mate. The substantial remaining piece of the final-state geometry.
 - `TRC_BlackHasLegalMove.lean` — `Black_HasLegalReply_NonFinal`: away from the final state the black king has a destination that is legal, i.e. genuinely unattacked by both rooks and the white king. (`blackLegalReply`, which packages a witness as a `(src, dst)` pair, and its spec `blackLegalReply_isLegal` are already in place.)
-- `TRC_Termination.lean` — `exists_iter_final`: iterating the cycle reaches a final state, by induction on the lexicographic measure `(n - 3 - rank, phase distance to .moveRa)`.
+
+`exists_iter_final` — that iterating the cycle reaches a final state — is proved: `ladderMeasure` flattens the pair (rank room left, phase distance) into `3 * (n - 3 - rank) + phaseIdx phase`, and every non-final cycle drops it by at least one, so ordinary induction on a fuel bound suffices.
 
 **On the shape of the termination statement:** `hreply` — the assumption that Black's chosen move is legal — is required only at *non-final* states. Quantifying it over all states would make the theorem vacuous: at a final state Black is checkmated, so no legal Black move exists and the hypothesis could never be satisfied. Correspondingly, `ladderCycleStep` treats final states as fixed points. `Black_HasLegalReply_NonFinal` (once proved) shows the restricted hypothesis is inhabited, i.e. that some Black strategy actually satisfies it.
 
@@ -177,7 +178,7 @@ In `TRC_FinalState.lean`, mate at the final state is assembled from three facts:
 lake build
 ```
 
-This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the three open goals in `TRC_FinalState.lean`, `TRC_BlackHasLegalMove.lean`, and `TRC_Termination.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
+This compiles every library in `lakefile.toml` and runs all `#guard` tests at compile time. The build succeeds; it emits `declaration uses 'sorry'` warnings for the two open goals in `TRC_FinalState.lean` and `TRC_BlackHasLegalMove.lean`. Note that a declaration built *on top of* an open goal gets no warning of its own — use `#print axioms` to check whether a given theorem is genuinely sorry-free.
 
 To build a single piece of the development, name its library, e.g.:
 
